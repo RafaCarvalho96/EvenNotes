@@ -1,0 +1,206 @@
+{
+  "project": "EvenNotes",
+  "branchName": "ralph/frontend-editor",
+  "description": "Frontend Editor - Editor Markdown com preview lado a lado, árvore de arquivos, autosave e execução de comandos de IA",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Scaffold apps/web com Vite + React + TypeScript",
+      "description": "Como desenvolvedor, preciso do pacote apps/web configurado com Vite, React e TypeScript para servir de base para todos os componentes do editor.",
+      "acceptanceCriteria": [
+        "apps/web existe como package pnpm com name @evennotes/web",
+        "Vite + React + TypeScript configurados (vite.config.ts, tsconfig.json)",
+        "CodeMirror 6 (@codemirror/view, @codemirror/state, @codemirror/lang-markdown) instalado como dependência",
+        "react-markdown, remark-gfm e rehype-sanitize instalados",
+        "pnpm install funciona sem erros",
+        "pnpm --filter @evennotes/web dev sobe servidor de desenvolvimento",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Scaffold completo: monorepo raiz (package.json, pnpm-workspace.yaml, turbo.json, tsconfig.base.json) + apps/web com Vite 6 + React 18 + TypeScript. Todas as dependências instaladas. Build e typecheck passam."
+    },
+    {
+      "id": "US-002",
+      "title": "Implementar shell de layout 3 painéis",
+      "description": "Como usuário, quero ver a estrutura visual do app com sidebar esquerda (workspace), painel central (editor) e painel direito (preview), mais um header simples.",
+      "acceptanceCriteria": [
+        "Componente AppLayout renderiza sidebar esquerda, painel central e painel direito",
+        "Header exibe nome do arquivo atual (placeholder por enquanto)",
+        "Layout usa CSS ou Tailwind com larguras proporcionais (sidebar ~20%, editor ~40%, preview ~40%)",
+        "Layout é responsivo ao ponto de não quebrar em 1280px",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "AppLayout implementado com header (logo + nome do arquivo + slot de ações), sidebar esquerda (~20%), painel central editor (~40%) e painel direito preview (~40%). CSS puro com variáveis CSS, suporte a tema claro/escuro via data-theme. min-width 1280px garante não quebrar. Typecheck passou sem erros."
+    },
+    {
+      "id": "US-003",
+      "title": "Criar componente WorkspaceTree (listagem de arquivos)",
+      "description": "Como usuário, quero ver a lista de arquivos .md do workspace na sidebar para poder selecionar qual arquivo editar.",
+      "acceptanceCriteria": [
+        "Componente WorkspaceTree aceita prop files: string[] e onSelect: (path: string) => void",
+        "Renderiza lista de arquivos .md com ícone ou indicador visual",
+        "Arquivo selecionado fica destacado visualmente",
+        "Apenas caminhos passados via props são exibidos (sem lógica de fetch nesta story)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "WorkspaceTree implementado com props files: string[], onSelect: (path: string) => void e selectedFile?: string. Renderiza lista com ícone SVG de arquivo, destaque visual no item ativo (cor accent + bold), overflow ellipsis nos nomes, estado vazio com mensagem. CSS usa variáveis CSS e color-mix para highlight. App.tsx conecta WorkspaceTree ao AppLayout com 5 arquivos de demo e estado gerenciado via useState. Typecheck passou sem erros."
+    },
+    {
+      "id": "US-004",
+      "title": "Criar componente MarkdownEditor com CodeMirror 6",
+      "description": "Como usuário, quero um editor de texto com syntax highlighting para Markdown onde posso digitar e editar meus arquivos .md.",
+      "acceptanceCriteria": [
+        "Componente MarkdownEditor renderiza instância do CodeMirror 6",
+        "Aceita props value: string e onChange: (value: string) => void",
+        "Syntax highlighting de Markdown ativo (@codemirror/lang-markdown)",
+        "Editor suporta seleção de texto e expõe seleção atual via onSelectionChange: (selected: string) => void",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Criar componente MarkdownPreview com react-markdown",
+      "description": "Como usuário, quero ver o preview renderizado do meu Markdown com suporte a GFM e sem risco de execução de scripts.",
+      "acceptanceCriteria": [
+        "Componente MarkdownPreview aceita prop content: string",
+        "Renderiza headings, listas, tabelas e code blocks corretamente",
+        "GFM habilitado via remark-gfm (tabelas, task lists, strikethrough)",
+        "HTML raw desabilitado por padrão (não usa dangerouslySetInnerHTML diretamente)",
+        "rehype-sanitize ativo para bloquear scripts e conteúdo inseguro",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Conectar editor e preview em tempo real com debounce",
+      "description": "Como usuário, quero que o preview atualize automaticamente enquanto edito, sem travar a digitação.",
+      "acceptanceCriteria": [
+        "MarkdownEditor e MarkdownPreview montados lado a lado no AppLayout",
+        "Preview atualiza com debounce de 300ms após parada de digitação",
+        "Digitação não trava nem exibe lag perceptível em documentos de até 5000 palavras",
+        "Estado do conteúdo gerenciado no nível do App ou feature/editor",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Carregar arquivo .md da API e exibir no editor",
+      "description": "Como usuário, quero clicar em um arquivo na WorkspaceTree e ver seu conteúdo carregado no editor.",
+      "acceptanceCriteria": [
+        "Clicar em arquivo na WorkspaceTree dispara GET /api/files/:path",
+        "Conteúdo retornado é carregado no MarkdownEditor",
+        "Header atualiza para exibir nome do arquivo atual",
+        "Enquanto carrega, um estado de loading é exibido",
+        "Erro de carregamento exibe mensagem clara",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Implementar autosave com debounce e indicador visual",
+      "description": "Como usuário, quero que meu arquivo seja salvo automaticamente enquanto edito, com um indicador visual confirmando o estado (salvando/salvo).",
+      "acceptanceCriteria": [
+        "Após pausa de 1 segundo na digitação, dispara PUT /api/files/:path com conteúdo atual",
+        "Header ou footer exibe estado: 'Salvando...' durante a chamada e 'Salvo' após sucesso",
+        "Erro de save exibe indicador de falha sem apagar o conteúdo do editor",
+        "Autosave só ocorre se o arquivo estiver aberto (path definido)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Criar CommandPalette com captura de seleção para IA",
+      "description": "Como usuário, quero abrir uma paleta de comandos e escolher um comando de IA que será executado sobre minha seleção ou documento inteiro.",
+      "acceptanceCriteria": [
+        "Componente CommandPalette abre via atalho Ctrl+K ou botão no header",
+        "Lista comandos disponíveis: summarize, rewrite, create-prd",
+        "Se houver texto selecionado no editor, é passado como contexto do comando",
+        "Se não houver seleção, usa o documento inteiro",
+        "Ao confirmar comando, dispara callback onExecute({ command, context })",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Criar RunPanel e ExecutionStatus com streaming da API",
+      "description": "Como usuário, quero ver o progresso da execução de um comando de IA em tempo real, sem que a UI congele.",
+      "acceptanceCriteria": [
+        "Componente ExecutionStatus exibe estados: idle, running, success, error",
+        "RunPanel exibe output em streaming via SSE ou WebSocket de POST /api/run",
+        "UI permanece responsiva durante streaming",
+        "Botão de cancelar visível durante execução (pode ser no-op por ora)",
+        "Ao finalizar, RunPanel exibe resultado completo",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Criar DiffOrResultPanel com ações de aplicação do resultado",
+      "description": "Como usuário, quero ver o resultado da IA em painel separado e poder aplicá-lo ao documento com uma ação explícita.",
+      "acceptanceCriteria": [
+        "DiffOrResultPanel exibe resultado do AI run após conclusão",
+        "Botão 'Copiar' copia resultado para clipboard",
+        "Botão 'Substituir seleção' substitui o trecho selecionado no editor",
+        "Botão 'Anexar ao fim' adiciona resultado ao final do documento",
+        "Botão 'Salvar como novo arquivo' abre input para nome do arquivo e chama PUT /api/files/:newPath",
+        "Painel pode ser fechado/minimizado",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Adicionar toggle de tema claro/escuro",
+      "description": "Como usuário, quero alternar entre tema claro e escuro, com preferência persistida entre sessões.",
+      "acceptanceCriteria": [
+        "Toggle no header alterna entre tema claro e escuro",
+        "Tema aplicado via classe CSS no elemento root (data-theme ou className)",
+        "Preferência salva em localStorage e restaurada ao recarregar",
+        "Editor CodeMirror e preview respeitam o tema ativo",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

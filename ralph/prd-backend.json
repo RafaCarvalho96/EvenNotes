@@ -1,0 +1,186 @@
+{
+  "project": "EvenNotes",
+  "branchName": "ralph/backend-api",
+  "description": "Backend API mínima - Fastify + TypeScript com endpoints de workspace, leitura/escrita de arquivos, execução de comandos de IA, streaming SSE e módulo LLM provider",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Inicializar apps/api com Fastify, TypeScript e pino + GET /health",
+      "description": "Como desenvolvedor, preciso do pacote apps/api configurado com Fastify, TypeScript e pino para servir de base para todos os endpoints da API.",
+      "acceptanceCriteria": [
+        "apps/api existe como package pnpm com name @evennotes/api",
+        "Fastify, pino e zod instalados como dependências",
+        "Servidor sobe na porta definida por env PORT (padrão 3001)",
+        "GET /health retorna 200 com { status: 'ok', timestamp: <ISO string> }",
+        "pino loga cada request em JSON estruturado (method, url, statusCode, responseTime)",
+        "pnpm --filter @evennotes/api dev inicia o servidor sem erros",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "apps/api criado com Fastify v5, pino v9, zod v3. tsx watch para dev. GET /health retorna {status,timestamp}. Logs estruturados em JSON funcionando."
+    },
+    {
+      "id": "US-002",
+      "title": "Adicionar tipos Run, Command e RunEvent a packages/contracts",
+      "description": "Como desenvolvedor, preciso dos tipos compartilhados de Run, Command e RunEvent em packages/contracts para que api, cli e web compartilhem o mesmo contrato sem duplicação.",
+      "acceptanceCriteria": [
+        "packages/contracts tem name @evennotes/contracts e está no workspace pnpm",
+        "Tipo CommandTarget exportado: { type: 'file' | 'selection' | 'pipeline', path: string, selection?: { start: number, end: number } }",
+        "Tipo CommandPayload exportado com campos: command, target, params, provider",
+        "Enum/union RunStatus exportado: 'created' | 'validating' | 'context_collected' | 'running' | 'completed' | 'failed'",
+        "Tipo RunEvent exportado com campos: type (run.created | run.model_started | run.token_stream | run.completed | run.failed), runId, payload",
+        "Tipo Run exportado com campos: id, command, status, createdAt, completedAt?, output?",
+        "Todos os tipos re-exportados pelo index.ts do package",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Implementar workspace module - GET /api/workspace/tree",
+      "description": "Como usuário, quero obter a árvore de arquivos do workspace para que o frontend possa listar os arquivos disponíveis para edição.",
+      "acceptanceCriteria": [
+        "GET /api/workspace/tree retorna 200 com array de paths relativos de arquivos .md",
+        "Apenas arquivos dentro do diretório WORKSPACE_ROOT (variável de ambiente) são listados",
+        "Paths são relativos ao WORKSPACE_ROOT (não absolutos)",
+        "Arquivos em node_modules, .git e .DS_Store são ignorados",
+        "Se WORKSPACE_ROOT não existe, retorna 400 com mensagem clara",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Implementar files module - GET /api/files/content?path=...",
+      "description": "Como usuário, quero ler o conteúdo de um arquivo .md do workspace para carregá-lo no editor.",
+      "acceptanceCriteria": [
+        "GET /api/files/content?path=<relativo> retorna 200 com { path, content: string }",
+        "Path é validado: não pode sair do WORKSPACE_ROOT (path traversal bloqueado)",
+        "Retorna 404 se o arquivo não existe com body { error: 'File not found' }",
+        "Retorna 400 se path não é fornecido ou está vazio",
+        "Conteúdo retornado como string UTF-8",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Implementar files module - PUT /api/files/content",
+      "description": "Como usuário, quero salvar o conteúdo de um arquivo .md editado para persistir as minhas alterações localmente.",
+      "acceptanceCriteria": [
+        "PUT /api/files/content aceita body { path: string, content: string } validado com Zod",
+        "Path é validado contra WORKSPACE_ROOT (path traversal bloqueado)",
+        "Salva conteúdo como UTF-8 no path relativo dentro de WORKSPACE_ROOT",
+        "Retorna 200 com { path, savedAt: <ISO string> } em caso de sucesso",
+        "Retorna 400 para body inválido com detalhe do erro de validação",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Implementar commands module - POST /api/commands/run",
+      "description": "Como usuário, quero disparar um comando de IA sobre um arquivo ou seleção e receber um runId para acompanhar a execução.",
+      "acceptanceCriteria": [
+        "POST /api/commands/run aceita CommandPayload validado com Zod (usando tipos de @evennotes/contracts)",
+        "Cria um Run com id único (uuid), status 'created' e registra em memória (Map<string, Run>)",
+        "Retorna 202 com { runId, status: 'created', streamUrl: '/api/runs/:runId/events' }",
+        "Retorna 400 para payload inválido com detalhe Zod",
+        "command deve ser um dos valores: 'summarize' | 'rewrite' | 'create-prd'",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Implementar runs module - GET /api/runs/:id",
+      "description": "Como usuário, quero consultar o status atual de uma execução pelo seu runId para saber se está em andamento, concluída ou com falha.",
+      "acceptanceCriteria": [
+        "GET /api/runs/:id retorna 200 com objeto Run (id, command, status, createdAt, completedAt?, output?)",
+        "Retorna 404 com { error: 'Run not found' } se o id não existe",
+        "Status reflete o estado atual do run no Map em memória",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Implementar SSE streaming - GET /api/runs/:id/events",
+      "description": "Como usuário, quero receber eventos de execução em tempo real via SSE para acompanhar o progresso do comando de IA sem polling.",
+      "acceptanceCriteria": [
+        "GET /api/runs/:id/events abre conexão SSE (Content-Type: text/event-stream)",
+        "Emite eventos no formato SSE: data: <JSON RunEvent>\\n\\n",
+        "Retorna 404 se o runId não existe",
+        "Conexão é encerrada pelo servidor após evento run.completed ou run.failed",
+        "EventEmitter ou similar centraliza emissão de eventos por runId",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Implementar ILlmProvider interface e MockLlmProvider em packages/ai-core",
+      "description": "Como desenvolvedor, preciso de uma interface ILlmProvider e uma implementação mock para que a pipeline possa ser testada sem depender de uma chave de API real.",
+      "acceptanceCriteria": [
+        "packages/ai-core tem name @evennotes/ai-core e está no workspace pnpm",
+        "Interface ILlmProvider exportada com método: generate(prompt: string, options?: LlmOptions): AsyncIterable<string>",
+        "Tipo LlmOptions exportado com campos opcionais: model?, maxTokens?, temperature?",
+        "MockLlmProvider implementa ILlmProvider e retorna stream de tokens simulado (ex: 'Mock response for: ' + primeiras 50 chars do prompt)",
+        "MockLlmProvider pode ser instanciado sem configuração externa",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Executar pipeline real no commands/run e emitir eventos SSE",
+      "description": "Como usuário, quero que ao criar um run via POST /api/commands/run a execução real aconteça em background, com eventos emitidos via SSE conforme o LLM responde.",
+      "acceptanceCriteria": [
+        "Após criar o run, o handler dispara execução async sem bloquear a resposta 202",
+        "Emite run.created imediatamente após criação",
+        "Emite run.model_started antes de chamar o LLM provider",
+        "Emite run.token_stream para cada chunk retornado pelo provider",
+        "Emite run.completed com output final concatenado ao terminar",
+        "Em caso de exceção, emite run.failed com message do erro e não crasha o processo",
+        "MockLlmProvider é usado quando variável de ambiente LLM_PROVIDER=mock",
+        "Run.status e Run.output são atualizados no Map ao final",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Implementar config endpoints - GET /api/config/providers e /api/config/pipelines",
+      "description": "Como usuário, quero consultar quais providers e pipelines estão disponíveis para que o frontend possa popular seletores de forma dinâmica.",
+      "acceptanceCriteria": [
+        "GET /api/config/providers retorna 200 com array de { id: string, name: string, available: boolean }",
+        "available é true se as variáveis de ambiente necessárias (ex: OPENAI_API_KEY) estão definidas; false caso contrário",
+        "GET /api/config/pipelines retorna 200 com array de { id: string, name: string, description: string }",
+        "Pipelines listadas no MVP: summarize, rewrite, create-prd",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
