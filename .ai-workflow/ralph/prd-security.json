@@ -1,0 +1,193 @@
+{
+  "project": "EvenNotes",
+  "branchName": "ralph/security-quality-observability",
+  "description": "Security, Quality and Observability - Transversal requirements covering workspace boundary enforcement, Markdown sanitization, secret management, test suites, structured logging, optional LangSmith tracing, and pipeline resilience.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Enforce workspace boundary in API filesystem routes",
+      "description": "As a developer, I need all file system operations in the API to be restricted to the configured workspace directory so that path traversal attacks are prevented.",
+      "acceptanceCriteria": [
+        "Create a resolveWorkspacePath util in apps/api/src",
+        "Throw a 403 when resolved path escapes the workspace root",
+        "All routes in files.ts and workspace.ts use this util",
+        "Requests with path traversal return 403 and never touch the filesystem",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Created apps/api/src/utils/workspace-boundary.ts exporting resolveWorkspacePath and WorkspaceBoundaryError (statusCode 403). All inline path-traversal checks in files.ts and workspace.ts replaced with this utility. Typecheck passes."
+    },
+    {
+      "id": "US-002",
+      "title": "Sanitize Markdown preview rendering in frontend",
+      "description": "As a user, I want the Markdown preview to be safe so that malicious HTML or scripts embedded in notes cannot execute in my browser.",
+      "acceptanceCriteria": [
+        "Install dompurify and @types/dompurify in apps/web",
+        "MarkdownPreview passes rendered HTML through DOMPurify.sanitize()",
+        "A note with script tags renders as escaped text",
+        "A note with onerror payload has the handler stripped",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "dompurify ^3.2.3 and @types/dompurify ^3.0.5 in apps/web/package.json. MarkdownPreview.tsx imports DOMPurify and applies sanitizeContent() with FORBID_TAGS and FORBID_ATTR before passing to react-markdown, which also runs rehype-sanitize. Typecheck passes."
+    },
+    {
+      "id": "US-003",
+      "title": "Separate secret config from app config and mask secrets in logs",
+      "description": "As a developer, I need API keys and secrets to be isolated in environment variables and never exposed in log output.",
+      "acceptanceCriteria": [
+        "Create apps/api/src/config.ts with zod validation",
+        "App startup fails fast with clear error if required vars are missing",
+        "Add .env.example at repo root",
+        "Root .gitignore ignores .env files",
+        "Secrets filtered/masked in logs",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "apps/api/src/config.ts created with zod envSchema. Startup fails fast on missing WORKSPACE_ROOT. Fastify logger in app.ts has redact config for authorization, x-api-key, apiKey, key, token, password, secret fields. Typecheck passes."
+    },
+    {
+      "id": "US-004",
+      "title": "Configure ESLint across monorepo and add lint gate",
+      "description": "As a developer, I want a single ESLint config enforced across all packages.",
+      "acceptanceCriteria": [
+        "eslint.config.js at monorepo root with TypeScript rules",
+        "Each package.json in apps/* and packages/* has a lint script",
+        "Root package.json has turbo run lint script",
+        "turbo.json includes lint pipeline task",
+        "pnpm lint exits 0 on clean codebase",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "eslint.config.js present at root using typescript-eslint flat config. Root package.json has lint: turbo run lint script. turbo.json has lint task. All apps and packages have lint scripts. Typecheck passes."
+    },
+    {
+      "id": "US-005",
+      "title": "Add unit tests for ai-core and ai-pipelines packages",
+      "description": "As a developer, I want unit tests for the AI packages so domain logic is verified independently.",
+      "acceptanceCriteria": [
+        "Install vitest in packages/ai-core and packages/ai-pipelines",
+        "Each package has a test script",
+        "At least one test per pipeline using mock LLM",
+        "Tests verify expected structure",
+        "All tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "vitest ^1.6.0 added to both packages. Test files created: mock-provider.test.ts, summarize.test.ts, rewrite.test.ts, create-prd.test.ts. Each tests happy-path (completed event with non-empty output) and empty-content failure. Typecheck passes."
+    },
+    {
+      "id": "US-006",
+      "title": "Add integration tests for API health and workspace routes",
+      "description": "As a developer, I want integration tests for health and workspace routes.",
+      "acceptanceCriteria": [
+        "Install supertest and vitest in apps/api",
+        "apps/api has a test script",
+        "GET /health test asserts 200 and { status: ok }",
+        "GET /api/workspace/tree test asserts 200 and array",
+        "Tests use temp directories",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "vitest, supertest, @types/supertest added to apps/api devDeps. Created apps/api/src/__tests__/routes.test.ts testing GET /health and GET /api/workspace/tree with temp WORKSPACE_ROOT. Typecheck passes."
+    },
+    {
+      "id": "US-007",
+      "title": "Add integration tests for API files and runs routes",
+      "description": "As a developer, I want integration tests for the files and runs routes.",
+      "acceptanceCriteria": [
+        "PUT /api/files/content creates a file and test asserts it exists",
+        "GET /api/files/content returns the file content written in previous step",
+        "GET /api/runs/:id returns 404 for unknown runId",
+        "Each test uses temp directory and cleans up",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Created apps/api/src/__tests__/files.test.ts: tests PUT /api/files/content (creates file, asserts file on disk, returns 200 with savedAt), GET /api/files/content (returns written content), GET for missing file (404), GET /api/runs/:non-existent (404 'Run not found'). Uses mkdtempSync temp dir, cleaned in afterAll. Typecheck passes."
+    },
+    {
+      "id": "US-008",
+      "title": "Add smoke tests for CLI pipeline commands",
+      "description": "As a developer, I want smoke tests that invoke each CLI command against a fixture file.",
+      "acceptanceCriteria": [
+        "Add test:smoke script in CLI package",
+        "Smoke test for summarize command with mocked provider, asserts output and exit 0",
+        "Smoke test for rewrite command, same pattern",
+        "Smoke test for create-prd command, same pattern",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Added vitest ^1.6.0 to apps/cli devDeps. Added test:smoke and test scripts. Created fixture at apps/cli/src/__tests__/fixtures/sample.md. Created smoke.test.ts: mocks ../lib/api.js (apiFetch returns 202 with runId, consumeSSE simulates token_stream+completed), spies on process.stdout.write and process.exit, runs each command via Commander.parseAsync, asserts stdout contains mock output and exitCode 0. Typecheck passes."
+    },
+    {
+      "id": "US-009",
+      "title": "Add structured logging with runId correlation to API",
+      "description": "As a developer, I want every API request to emit structured JSON logs tagged with a runId.",
+      "acceptanceCriteria": [
+        "Install pino in apps/api",
+        "Replace console.log/error calls with pino logger",
+        "Each request gets a runId injected into log context",
+        "Log lines include runId, method, path, statusCode, durationMs",
+        "Log level configurable via LOG_LEVEL env",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "pino ^9.6.0 and pino-pretty already in apps/api. Fastify logger with level from LOG_LEVEL (default info). Added onRequest hook in app.ts: request.log = request.log.child({ runId: request.id }). Added onResponse hook logging { method, path, statusCode, durationMs }. No console.* calls in apps/api/src. Typecheck passes."
+    },
+    {
+      "id": "US-010",
+      "title": "Add optional LangSmith tracing to ai-pipelines",
+      "description": "As a developer, I want pipeline executions to be optionally traced in LangSmith.",
+      "acceptanceCriteria": [
+        "LangSmith tracing enabled only when LANGSMITH_API_KEY and LANGCHAIN_TRACING_V2=true are set",
+        "When vars absent, pipelines run normally with no side-effects",
+        "Each pipeline wraps its execution with a LangSmith-compatible run name and tags",
+        "Add LANGSMITH_API_KEY, LANGCHAIN_PROJECT, LANGCHAIN_TRACING_V2 to .env.example",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "Created packages/ai-pipelines/src/tracing.ts exporting isTracingEnabled(), startTrace(pipelineName, runId), endTrace(ctx, output?, error?). Tracing is no-op when LANGSMITH_API_KEY or LANGCHAIN_TRACING_V2=true are absent. All 3 pipelines call startTrace() and endTrace(). Variables already in .env.example. Typecheck passes."
+    },
+    {
+      "id": "US-011",
+      "title": "Capture and log pipeline execution metadata",
+      "description": "As a developer, I want each pipeline run to log its latency and errors.",
+      "acceptanceCriteria": [
+        "Each pipeline records startedAt and finishedAt timestamps",
+        "durationMs logged at info level",
+        "Pipeline errors logged at error level with runId, pipeline name, error message",
+        "No sensitive content in logs",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "Added @evennotes/observability dependency to packages/ai-pipelines. Each pipeline records startedAt and computes durationMs. Uses createLogger() from @evennotes/observability: logs info 'pipeline completed' with { runId, pipeline, durationMs, outputLength } and error 'pipeline failed' with { runId, pipeline, durationMs, error }. console.warn calls replaced with logger.warn. No raw API keys or full prompts in logs. Typecheck passes."
+    },
+    {
+      "id": "US-012",
+      "title": "Add configurable timeouts and retry logic to pipeline execution",
+      "description": "As a developer, I want pipeline calls to respect a timeout and retry conservatively on transient errors.",
+      "acceptanceCriteria": [
+        "Pipeline respects PIPELINE_TIMEOUT_MS env var (default 30000ms)",
+        "Transient errors (HTTP 429, 503) retried up to 2 times with exponential backoff",
+        "Non-retriable errors (400, 401) fail immediately",
+        "All error paths surface human-readable message",
+        "Add PIPELINE_TIMEOUT_MS and PIPELINE_MAX_RETRIES to .env.example",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "Created packages/ai-pipelines/src/resilience.ts with getPipelineTimeout(), getMaxRetries(), withTimeout<T>(), isRetriable(), withRetry<T>() (exponential backoff 500ms*2^attempt). Each pipeline wraps model invocation in withTimeout+withRetry. Non-retriable errors throw immediately. All catch blocks emit PipelineEvent {type:'failed', error: message} without raw stacks. PIPELINE_TIMEOUT_MS and PIPELINE_MAX_RETRIES already in .env.example. Typecheck passes."
+    }
+  ]
+}

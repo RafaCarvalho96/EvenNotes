@@ -1,0 +1,118 @@
+# EvenNotes – Docker Compose (v2 format, no 'version' key needed)
+#
+# Usage:
+#   docker compose -f infra/docker/compose.yml up --watch
+#   docker compose -f infra/docker/compose.yml --profile observability up --watch
+#   docker compose -f infra/docker/compose.yml down
+#   docker compose -f infra/docker/compose.yml down -v   # also removes volumes
+
+services:
+
+  # ─────────────────────────────────────────────────────────────────
+  # api – EvenNotes backend (NestJS / Express + AI pipelines)
+  # ─────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/docker/api.Dockerfile
+      target: dev
+    ports:
+      - "${PORT_API:-3001}:3001"
+    env_file:
+      - path: ../../.env.local
+        required: false
+      - path: ../../.env.example
+        required: false
+    environment:
+      NODE_ENV: development
+      WORKSPACE_ROOT: /data/workspace
+    volumes:
+      - ../../:/app
+      - workspace_data:/data/workspace
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    develop:
+      watch:
+        # Sync TypeScript source files without rebuilding the image
+        - action: sync
+          path: ../../apps/api/src
+          target: /app/apps/api/src
+        # Rebuild image when dependency manifests change
+        - action: rebuild
+          path: ../../apps/api/package.json
+        - action: rebuild
+          path: ../../pnpm-lock.yaml
+
+  # ─────────────────────────────────────────────────────────────────
+  # web – EvenNotes frontend (Vite + React)
+  # ─────────────────────────────────────────────────────────────────
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+      target: dev
+    ports:
+      - "${PORT_WEB:-5173}:5173"
+    env_file:
+      - path: ../../.env.local
+        required: false
+      - path: ../../.env.example
+        required: false
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ../../:/app
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    develop:
+      watch:
+        # Sync React/TypeScript source files without rebuilding
+        - action: sync
+          path: ../../apps/web/src
+          target: /app/apps/web/src
+        # Rebuild image when dependency manifest changes
+        - action: rebuild
+          path: ../../apps/web/package.json
+
+# ─────────────────────────────────────────────────────────────────
+# Profiles
+# ─────────────────────────────────────────────────────────────────
+#
+# observability  – reserved for future: OpenTelemetry collector,
+#                  Prometheus, Grafana, Jaeger, etc.
+#                  Activate with:
+#                    docker compose ... --profile observability up
+#
+# debug          – reserved for future: debug proxy, inspector
+#                  sidecars, remote debug tunnels, etc.
+#                  Activate with:
+#                    docker compose ... --profile debug up
+#
+# Example placeholder (uncomment and configure when ready):
+#
+#  otel-collector:
+#    profiles: [observability]
+#    image: otel/opentelemetry-collector-contrib:latest
+#    # volumes:
+#    #   - ../../infra/otel/otel-collector.yaml:/etc/otelcol/config.yaml
+#    # ports:
+#    #   - "4317:4317"   # OTLP gRPC
+#    #   - "4318:4318"   # OTLP HTTP
+#
+#  debug-proxy:
+#    profiles: [debug]
+#    image: nicolaka/netshoot:latest
+#    # Reserved for future inspection features (tcpdump, curl, etc.)
+
+# ─────────────────────────────────────────────────────────────────
+# Volumes
+# ─────────────────────────────────────────────────────────────────
+volumes:
+  # Persists run history and workspace data between container restarts
+  workspace_data:

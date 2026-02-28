@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm install:*)",
       "Bash(pnpm:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)"
     ]
   }
 }

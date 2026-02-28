@@ -13,6 +13,18 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "declarationMap": true,
-    "composite": true
+    "composite": true,
+    "paths": {
+      "@evennotes/contracts": ["./packages/contracts/src/index.ts"],
+      "@evennotes/ai-core": ["./packages/ai-core/src/index.ts"],
+      "@evennotes/ai-pipelines": ["./packages/ai-pipelines/src/index.ts"],
+      "@evennotes/prompts": ["./packages/prompts/src/index.ts"],
+      "@evennotes/config": ["./packages/config/src/index.ts"],
+      "@evennotes/observability": ["./packages/observability/src/index.ts"],
+      "@evennotes/test-utils": ["./packages/test-utils/src/index.ts"],
+      "@evennotes/markdown-core": ["./packages/markdown-core/src/index.ts"],
+      "@evennotes/workspace-core": ["./packages/workspace-core/src/index.ts"],
+      "@evennotes/ui": ["./packages/ui/src/index.ts"]
+    }
   }
 }

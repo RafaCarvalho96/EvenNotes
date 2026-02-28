@@ -1,0 +1,12 @@
+.markdown-editor {
+  height: 100%;
+  overflow: hidden;
+}
+
+.markdown-editor .cm-editor {
+  height: 100%;
+}
+
+.markdown-editor .cm-editor.cm-focused {
+  outline: none;
+}

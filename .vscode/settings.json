@@ -1,0 +1,12 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "pnpm": true,
+        "npx tsc": true,
+        "Test-Path": true,
+        "ForEach-Object": true,
+        "New-Item": true,
+        "Out-Null": true,
+        "Set-Content": true,
+        "ConvertFrom-Json": true
+    }
+}

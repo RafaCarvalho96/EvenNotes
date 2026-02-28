@@ -1,0 +1,209 @@
+{
+  "project": "EvenNotes",
+  "branchName": "ralph/ai-pipeline-cli",
+  "description": "AI Pipeline + CLI - Pipelines de IA (summarize, rewrite, create-prd) com LangChain, adapters de provider LLM e CLI Commander.js com todos os comandos do MVP",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Scaffold packages/ai-pipelines com interface PipelineRunner e tipos de contrato",
+      "description": "Como desenvolvedor, preciso do package @evennotes/ai-pipelines criado com a interface PipelineRunner e os tipos de entrada/saída de pipeline para que as implementações concretas possam ser desenvolvidas de forma consistente.",
+      "acceptanceCriteria": [
+        "packages/ai-pipelines existe como package pnpm com name @evennotes/ai-pipelines",
+        "Interface PipelineRunner exportada com método: run(input: PipelineInput): AsyncIterable<PipelineEvent>",
+        "Tipo PipelineInput exportado com campos: command, content, params?, provider?, runId",
+        "Tipo PipelineEvent exportado com union: { type: 'token', value: string } | { type: 'completed', output: string } | { type: 'failed', error: string }",
+        "Tipo PipelineOutput exportado com campos: output, runId, command, completedAt",
+        "Todos os tipos re-exportados pelo index.ts do package",
+        "Referência ao package adicionada em packages/contracts se tipos forem compartilhados",
+        "pnpm install funciona sem erros",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "packages/ai-pipelines criado com PipelineRunner, PipelineInput, PipelineEvent, PipelineOutput. pnpm install e typecheck OK."
+    },
+    {
+      "id": "US-002",
+      "title": "Criar packages/prompts com templates para summarize, rewrite e create-prd",
+      "description": "Como desenvolvedor, preciso de templates de prompt versionados e tipados para os três comandos do MVP, com placeholders explícitos e separação entre system prompt e user prompt.",
+      "acceptanceCriteria": [
+        "packages/prompts existe como package pnpm com name @evennotes/prompts",
+        "Tipo PromptTemplate exportado com campos: id, version, system: string, user: string, placeholders: string[]",
+        "Template SUMMARIZE_PROMPT exportado com placeholder {content}",
+        "Template REWRITE_PROMPT exportado com placeholders {content} e {instruction}",
+        "Template CREATE_PRD_PROMPT exportado com placeholder {context}",
+        "Função buildPrompt(template: PromptTemplate, vars: Record<string, string>): { system: string, user: string } exportada",
+        "Todos os templates e funções re-exportados pelo index.ts",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "packages/prompts criado com PromptTemplate, SUMMARIZE_PROMPT, REWRITE_PROMPT, CREATE_PRD_PROMPT e buildPrompt. pnpm install e typecheck OK."
+    },
+    {
+      "id": "US-003",
+      "title": "Implementar OpenAILlmProvider real em packages/ai-core",
+      "description": "Como desenvolvedor, preciso de um adapter real para a API da OpenAI que implemente ILlmProvider com streaming, para que as pipelines possam operar com um modelo real além do mock.",
+      "acceptanceCriteria": [
+        "openai SDK instalado como dependência em packages/ai-core",
+        "Classe OpenAILlmProvider implementa ILlmProvider (interface de prd-backend US-009)",
+        "método generate(prompt, options?) retorna AsyncIterable<string> com tokens via stream da OpenAI",
+        "Usa variável de ambiente OPENAI_API_KEY; lança erro descritivo se não estiver definida",
+        "Suporta campos opcionais model (default: 'gpt-4o-mini') e maxTokens via LlmOptions",
+        "providerRegistry exportado mapeia 'openai' → OpenAILlmProvider e 'mock' → MockLlmProvider",
+        "Função getProvider(name: string): ILlmProvider exportada — usa LLM_PROVIDER env como default",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "packages/ai-core criado com ILlmProvider, LlmOptions, MockLlmProvider e OpenAILlmProvider (openai SDK v4). providerRegistry mapeia 'openai' e 'mock'. getProvider() usa LLM_PROVIDER env. pnpm install e typecheck OK."
+    },
+    {
+      "id": "US-004",
+      "title": "Implementar SummarizePipeline em packages/ai-pipelines",
+      "description": "Como usuário, quero que o comando summarize leia o conteúdo de um arquivo Markdown, monte o contexto e retorne um resumo estruturado via stream, passando por todos os estágios definidos no contrato de pipeline.",
+      "acceptanceCriteria": [
+        "Classe SummarizePipeline implementa PipelineRunner",
+        "Estágio 1 (input resolution): valida que content não está vazio; emite PipelineEvent failed se inválido",
+        "Estágio 2 (context collection): trunca content em 8000 chars com aviso se exceder",
+        "Estágio 3 (prompt assembly): usa SUMMARIZE_PROMPT de @evennotes/prompts com buildPrompt",
+        "Estágio 4 (model invocation): chama ILlmProvider.generate e itera tokens do stream",
+        "Estágio 5 (post-processing): concatena tokens e emite PipelineEvent completed",
+        "Em qualquer exceção: emite PipelineEvent failed com message do erro",
+        "SummarizePipeline exportado pelo index.ts de packages/ai-pipelines",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "SummarizePipeline implementada em packages/ai-pipelines/src/summarize.ts. Tipos movidos para types.ts para evitar circular import. 5 estágios: input validation, truncation (8000 chars), prompt assembly via SUMMARIZE_PROMPT+buildPrompt, token streaming via ILlmProvider, completed event. Exportada pelo index.ts. typecheck OK."
+    },
+    {
+      "id": "US-005",
+      "title": "Implementar RewritePipeline em packages/ai-pipelines",
+      "description": "Como usuário, quero que o comando rewrite receba um arquivo ou seleção e retorne uma versão reescrita do texto via stream, seguindo os mesmos estágios da pipeline de summarize.",
+      "acceptanceCriteria": [
+        "Classe RewritePipeline implementa PipelineRunner",
+        "Aceita params.instruction opcional para direcionar a reescrita (ex: 'torne mais formal')",
+        "Usa REWRITE_PROMPT de @evennotes/prompts com placeholders {content} e {instruction}",
+        "Se params.instruction não fornecido, usa instrução default: 'Reescreva de forma mais clara e objetiva'",
+        "Emite tokens via stream durante execução do provider",
+        "Emite PipelineEvent completed ao final com output concatenado",
+        "Em exceção, emite PipelineEvent failed com message",
+        "RewritePipeline exportado pelo index.ts de packages/ai-pipelines",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "RewritePipeline implementada em packages/ai-pipelines/src/rewrite.ts. 5 estágios: input validation, truncation (8000 chars), prompt assembly via REWRITE_PROMPT+buildPrompt com {content} e {instruction}, token streaming via ILlmProvider, completed event. Default instruction 'Reescreva de forma mais clara e objetiva' aplicado quando params.instruction ausente. Exportada pelo index.ts. typecheck OK."
+    },
+    {
+      "id": "US-006",
+      "title": "Implementar CreatePrdPipeline em packages/ai-pipelines",
+      "description": "Como usuário, quero que o comando create-prd receba um contexto textual (conteúdo de arquivo ou diretório concatenado) e gere um documento PRD estruturado em Markdown via stream.",
+      "acceptanceCriteria": [
+        "Classe CreatePrdPipeline implementa PipelineRunner",
+        "Aceita content como contexto (texto de um arquivo .md ou múltiplos arquivos concatenados com separador)",
+        "Usa CREATE_PRD_PROMPT de @evennotes/prompts com placeholder {context}",
+        "PRD gerado segue estrutura mínima: Visão, Problema, Objetivos, Escopo, Requisitos, Critérios de aceite",
+        "Emite tokens via stream durante execução",
+        "Emite PipelineEvent completed com PRD completo em Markdown",
+        "Em exceção, emite PipelineEvent failed",
+        "CreatePrdPipeline exportado pelo index.ts de packages/ai-pipelines",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "CreatePrdPipeline implementada em packages/ai-pipelines/src/create-prd.ts. 5 estágios: input validation, truncation (8000 chars), prompt assembly via CREATE_PRD_PROMPT+buildPrompt com {context}, token streaming via ILlmProvider, completed event. Exportada pelo index.ts. typecheck OK."
+    },
+    {
+      "id": "US-007",
+      "title": "Integrar pipelines reais na rota POST /api/commands/run da API",
+      "description": "Como desenvolvedor, preciso que o handler de POST /api/commands/run selecione e execute a pipeline correta (Summarize, Rewrite ou CreatePrd) em vez do MockLlmProvider direto, propagando os eventos via SSE.",
+      "acceptanceCriteria": [
+        "@evennotes/ai-pipelines adicionado como dependência de apps/api",
+        "Handler de POST /api/commands/run instancia a pipeline correspondente ao campo command do payload",
+        "Mapa de seleção: 'summarize' → SummarizePipeline, 'rewrite' → RewritePipeline, 'create-prd' → CreatePrdPipeline",
+        "Pipeline recebe PipelineInput com content lido do arquivo (path do target) e runId gerado",
+        "Cada PipelineEvent { type: 'token' } emite RunEvent run.token_stream via EventEmitter do run",
+        "PipelineEvent { type: 'completed' } emite run.completed e atualiza Run.status e Run.output no Map",
+        "PipelineEvent { type: 'failed' } emite run.failed com a mensagem",
+        "provider selecionado via getProvider() de @evennotes/ai-core (respeita LLM_PROVIDER env)",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "POST /api/commands/run agora instancia SummarizePipeline, RewritePipeline ou CreatePrdPipeline de @evennotes/ai-pipelines com base no campo command. Lê o conteúdo do arquivo via fs.readFile (resolvido a partir de WORKSPACE_ROOT). Provider selecionado via getProvider() de @evennotes/ai-core (respeita LLM_PROVIDER env). Eventos do pipeline propagados via emitRunEvent() de store/runEvents.ts: token → run.token_stream, completed → run.completed + atualiza Map, failed → run.failed. SSE endpoint GET /api/runs/:id/events já existia em routes/runs.ts usando runEventEmitter. @evennotes/ai-pipelines e @evennotes/ai-core adicionados como dependências de apps/api. Typecheck passes."
+    },
+    {
+      "id": "US-008",
+      "title": "Scaffold apps/cli com Commander.js e comando `evennotes health`",
+      "description": "Como desenvolvedor, preciso do package apps/cli configurado com Commander.js e um comando health funcional para validar que o CLI está operacional e consegue se comunicar com a API.",
+      "acceptanceCriteria": [
+        "apps/cli existe como package pnpm com name @evennotes/cli",
+        "commander instalado como dependência",
+        "Binary evennotes registrado em package.json bin field",
+        "pnpm --filter @evennotes/cli build gera executável sem erros",
+        "evennotes --help exibe lista de comandos disponíveis",
+        "evennotes health chama GET {API_URL}/health e imprime { status, timestamp } formatado",
+        "API_URL lida de variável de ambiente (default: http://localhost:3001)",
+        "Se API estiver inacessível, exibe mensagem de erro clara e sai com código 1",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "apps/cli criado com @evennotes/cli, commander dep, bin 'evennotes'→dist/index.js. tsconfig.json/tsconfig.build.json alinhados com apps/api. src/index.ts com shebang, Commander program, subcomandos registrados. src/commands/health.ts chama GET /health, imprime status+timestamp, trata erro de rede (exit 1). API_URL lida de process.env['API_URL'] (default http://localhost:3001). Typecheck passes."
+    },
+    {
+      "id": "US-009",
+      "title": "CLI - comando `evennotes workspace tree`",
+      "description": "Como usuário, quero listar os arquivos .md do workspace atual via CLI para ter uma visão rápida dos documentos disponíveis sem abrir a UI.",
+      "acceptanceCriteria": [
+        "evennotes workspace tree chama GET {API_URL}/api/workspace/tree",
+        "Exibe lista de paths relativos, um por linha, com indentação para estrutura de diretório",
+        "Se a lista estiver vazia, exibe mensagem 'Nenhum arquivo .md encontrado no workspace'",
+        "Se a API retornar erro, exibe mensagem de erro e sai com código 1",
+        "evennotes workspace --help descreve o subcomando",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "src/commands/workspace.ts registra subcomando 'workspace tree'. Chama GET /api/workspace/tree, exibe paths indentados por profundidade de diretório. Lista vazia exibe 'Nenhum arquivo .md encontrado no workspace'. Erros de API/rede exibem mensagem e exit 1. 'evennotes workspace --help' descreve o subcomando. Typecheck passes."
+    },
+    {
+      "id": "US-010",
+      "title": "CLI - comandos `evennotes run summarize|rewrite|create-prd <path>`",
+      "description": "Como usuário, quero executar pipelines de IA diretamente do terminal passando um arquivo como argumento e ver o resultado em streaming no stdout.",
+      "acceptanceCriteria": [
+        "evennotes run summarize <path> chama POST /api/commands/run com command='summarize' e target.path=<path>",
+        "evennotes run rewrite <path> chama POST /api/commands/run com command='rewrite'",
+        "evennotes run create-prd <path> chama POST /api/commands/run com command='create-prd'",
+        "Após receber 202 com runId, conecta no endpoint SSE GET /api/runs/:runId/events",
+        "Tokens run.token_stream são impressos no stdout em tempo real (process.stdout.write sem newline extra)",
+        "run.completed imprime newline final e sai com código 0",
+        "run.failed imprime mensagem de erro no stderr e sai com código 1",
+        "Se arquivo <path> não existir localmente, exibe erro antes de chamar a API",
+        "evennotes run --help lista os subcomandos disponíveis",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "src/commands/run.ts registra subcomandos 'run summarize|rewrite|create-prd <path>'. Verifica existência local do arquivo antes de chamar API. POST /api/commands/run com command e target.path, recebe 202 com runId. SSE consumido via consumeSSE() em src/lib/api.ts (fetch nativo Node 18+ com ReadableStream). run.token_stream: process.stdout.write(token) sem newline. run.completed: imprime newline, exit 0. run.failed: stderr com erro, exit 1. 'evennotes run --help' lista subcomandos. Typecheck passes."
+    },
+    {
+      "id": "US-011",
+      "title": "CLI - `evennotes pipelines list` e `evennotes providers list`",
+      "description": "Como usuário, quero consultar no terminal quais pipelines e providers estão disponíveis e quais estão ativos para saber o que posso usar.",
+      "acceptanceCriteria": [
+        "evennotes pipelines list chama GET /api/config/pipelines e exibe tabela: id | name | description",
+        "evennotes providers list chama GET /api/config/providers e exibe tabela: id | name | available",
+        "Providers available=true exibem marcador visual (ex: ✓ ou [OK]); available=false exibem [sem chave]",
+        "Se a API retornar erro, exibe mensagem de erro e sai com código 1",
+        "evennotes pipelines --help e evennotes providers --help descrevem os subcomandos",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "src/commands/pipelines.ts registra 'pipelines list': GET /api/config/pipelines, tabela com colunas id|name|description. src/commands/providers.ts registra 'providers list': GET /api/config/providers, tabela id|name|available com '✓ [OK]' (available=true) ou '[sem chave]' (available=false). Ambos tratam erro de API com exit 1. '--help' descreve subcomandos. Typecheck passes."
+    }
+  ]
+}

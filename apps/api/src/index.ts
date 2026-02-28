@@ -1,6 +1,8 @@
+import './config.js' // fail-fast env validation
+import { config } from './config.js'
 import { buildApp } from './app.js'
 
-const PORT = Number(process.env.PORT) || 3001
+const PORT = config.PORT
 
 const app = buildApp()
 

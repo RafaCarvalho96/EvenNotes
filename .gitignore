@@ -1,1 +1,8 @@
 node_modules
+
+# Local environment files – never commit these (use .env.example as the template)
+.env
+.env.local
+.env.docker
+.env.*
+!.env.example

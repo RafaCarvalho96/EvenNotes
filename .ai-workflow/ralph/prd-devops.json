@@ -1,0 +1,133 @@
+{
+  "project": "EvenNotes",
+  "branchName": "ralph/devops-compose",
+  "description": "DevOps e Docker Compose - ambiente local reproduzível com Dockerfiles multi-stage, profiles, watch mode e configuração de variáveis de ambiente",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Criar .env.example com todas as variáveis de ambiente necessárias",
+      "description": "Como desenvolvedor, preciso de um arquivo .env.example na raiz do repositório com todas as variáveis de ambiente documentadas para que qualquer pessoa possa configurar o ambiente local sem adivinhar o que é necessário.",
+      "acceptanceCriteria": [
+        "Arquivo .env.example existe na raiz do repositório",
+        "Contém PORT_API com valor padrão 3001 e comentário explicativo",
+        "Contém PORT_WEB com valor padrão 5173 e comentário explicativo",
+        "Contém WORKSPACE_ROOT com valor padrão ./workspace e comentário explicativo",
+        "Contém LOG_LEVEL com valor padrão info e comentário explicativo",
+        "Contém OPENAI_API_KEY vazio com comentário indicando que é obrigatório para IA",
+        "Contém LANGSMITH_API_KEY vazio com comentário indicando que é opcional",
+        "Contém LANGSMITH_TRACING=false com comentário indicando que é opcional",
+        "Contém LLM_PROVIDER=mock com comentário explicando os valores possíveis (mock | openai)",
+        ".env.example está listado no .gitignore como exceção (ou seja, NÃO está no .gitignore — é seguro commitar)",
+        ".env.local e .env.docker estão no .gitignore",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Created .env.example at repo root with all required variables: PORT_API=3001, PORT_WEB=5173, WORKSPACE_ROOT=./workspace, LOG_LEVEL=info, OPENAI_API_KEY (empty, marked required), LANGSMITH_API_KEY (empty, optional), LANGSMITH_TRACING=false (optional), LLM_PROVIDER=mock (with mock|openai comment). Updated .gitignore to include .env.local and .env.docker (secrets, not committed) while leaving .env.example uncommitted to .gitignore so it is safe to track in git. Typecheck passes for both API and web packages."
+    },
+    {
+      "id": "US-002",
+      "title": "Criar infra/docker/.dockerignore",
+      "description": "Como desenvolvedor, preciso de um .dockerignore para que o build do Docker não copie arquivos desnecessários como node_modules, .git e artefatos de build, mantendo as imagens leves e o build rápido.",
+      "acceptanceCriteria": [
+        "Arquivo infra/docker/.dockerignore existe",
+        "Exclui node_modules em todos os níveis (**/node_modules)",
+        "Exclui .git",
+        "Exclui dist e build em todos os níveis (**/dist, **/build)",
+        "Exclui .env, .env.local, .env.docker (mas NÃO .env.example)",
+        "Exclui *.log",
+        "Exclui .DS_Store",
+        "Exclui coverage e .turbo em todos os níveis",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Created infra/docker/.dockerignore. Excludes **/node_modules, .git, **/dist, **/build, .env/.env.local/.env.docker, *.log, .DS_Store, **/coverage, **/.turbo. .env.example is explicitly NOT excluded per spec."
+    },
+    {
+      "id": "US-003",
+      "title": "Criar infra/docker/api.Dockerfile com multi-stage (dev + prod)",
+      "description": "Como desenvolvedor, preciso de um Dockerfile multi-stage para apps/api que permita usar a mesma imagem em desenvolvimento (com hot reload via tsx) e em produção (JS compilado), com cache eficiente de dependências pnpm.",
+      "acceptanceCriteria": [
+        "Arquivo infra/docker/api.Dockerfile existe",
+        "Stage base: node:24-alpine, instala pnpm via corepack, copia apenas manifests de workspace (package.json, pnpm-lock.yaml, pnpm-workspace.yaml) e instala dependências com cache mount do BuildKit (--mount=type=cache)",
+        "Stage dev: FROM base, copia código fonte, expõe PORT_API (3001), CMD usa tsx watch para apps/api/src/index.ts",
+        "Stage prod: FROM base, copia código fonte, roda pnpm build --filter @evennotes/api, expõe PORT_API, CMD roda node sobre o dist compilado",
+        "Usa ARG para NODE_ENV",
+        "Inclui HEALTHCHECK com curl em GET /health",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Created infra/docker/api.Dockerfile with stages: base (node:24-alpine + corepack pnpm, copies workspace manifests, pnpm install with --mount=type=cache BuildKit), dev (tsx watch via pnpm exec, exposes 3001, HEALTHCHECK via wget), prod (pnpm build --filter @evennotes/api, runs node on dist, HEALTHCHECK). ARG NODE_ENV used in both dev and prod stages."
+    },
+    {
+      "id": "US-004",
+      "title": "Criar infra/docker/web.Dockerfile com multi-stage (dev + prod)",
+      "description": "Como desenvolvedor, preciso de um Dockerfile multi-stage para apps/web que permita usar Vite dev server em desenvolvimento e uma imagem nginx servindo os arquivos estáticos em produção.",
+      "acceptanceCriteria": [
+        "Arquivo infra/docker/web.Dockerfile existe",
+        "Stage base: node:24-alpine, instala pnpm via corepack, copia apenas manifests de workspace e instala dependências com cache mount do BuildKit",
+        "Stage dev: FROM base, copia código fonte, expõe PORT_WEB (5173), CMD usa pnpm --filter @evennotes/web dev -- --host 0.0.0.0",
+        "Stage build: FROM base, copia código fonte, roda pnpm --filter @evennotes/web build",
+        "Stage prod: FROM nginx:alpine, copia artefatos do stage build para /usr/share/nginx/html, expõe porta 80",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Created infra/docker/web.Dockerfile with stages: base (node:24-alpine + corepack pnpm, workspace manifests, BuildKit cache install), dev (copies source, exposes 5173, CMD pnpm --filter @evennotes/web dev -- --host 0.0.0.0), build (pnpm --filter @evennotes/web build), prod (nginx:alpine, copies dist from build stage to /usr/share/nginx/html, exposes 80)."
+    },
+    {
+      "id": "US-005",
+      "title": "Criar infra/docker/compose.yml com serviços web e api (default)",
+      "description": "Como desenvolvedor, quero subir o ambiente completo com um único comando docker compose up para que o onboarding seja simples e o ambiente seja reproduzível.",
+      "acceptanceCriteria": [
+        "Arquivo infra/docker/compose.yml existe",
+        "Serviço api: usa infra/docker/api.Dockerfile (target: dev), porta ${PORT_API:-3001}:3001, env_file: ../../.env.local (com fallback para .env.example), volume do código fonte montado em dev (../../:/app), healthcheck em GET /health (interval: 10s, timeout: 5s, retries: 3)",
+        "Serviço web: usa infra/docker/web.Dockerfile (target: dev), porta ${PORT_WEB:-5173}:5173, env_file: ../../.env.local (com fallback), volume do código fonte montado em dev, depende de api estar healthy",
+        "Ambos os serviços têm restart: unless-stopped",
+        "Volume nomeado workspace_data para armazenar dados locais e histórico de runs",
+        "Variável WORKSPACE_ROOT aponta para o volume workspace_data dentro do container da api",
+        "docker compose -f infra/docker/compose.yml config valida sem erros",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "FALHA: O serviço web em compose.yml não possui bloco healthcheck próprio. O serviço api está correto (healthcheck via wget /health, interval:10s, timeout:5s, retries:3, restart:unless-stopped). O serviço web depende de api (service_healthy) mas não declara seu próprio healthcheck — critério 'Ambos os serviços têm healthcheck' não atendido. Correção necessária: adicionar healthcheck no serviço web (ex: wget --spider http://localhost:5173 ou curl). Restante da US implementado corretamente (volumes, env_file, restart, workspace_data)."
+    },
+    {
+      "id": "US-006",
+      "title": "Adicionar profiles (observability, debug) e watch mode ao compose.yml",
+      "description": "Como desenvolvedor, preciso de profiles para serviços opcionais e de watch mode configurado para ter ciclo de feedback rápido em desenvolvimento sem precisar reiniciar os containers manualmente.",
+      "acceptanceCriteria": [
+        "Profile observability existe no compose.yml com pelo menos um serviço placeholder comentado (ex: otel-collector) documentando a intenção",
+        "Profile debug existe no compose.yml documentado como reservado para futuros recursos de inspeção",
+        "Bloco develop.watch configurado no serviço api: action: sync para ./apps/api/src → /app/apps/api/src e action: rebuild para package.json e pnpm-lock.yaml",
+        "Bloco develop.watch configurado no serviço web: action: sync para ./apps/web/src → /app/apps/web/src e action: rebuild para package.json",
+        "docker compose -f infra/docker/compose.yml --profile observability config valida sem erros",
+        "Comentário no compose.yml instrui como usar: docker compose -f infra/docker/compose.yml up --watch",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "FALHA PARCIAL: develop.watch está corretamente configurado para ambos os serviços (api: sync src + rebuild package.json/pnpm-lock.yaml; web: sync src + rebuild package.json). O comentário de uso 'docker compose up --watch' está presente. Porém os profiles observability e debug existem apenas como blocos YAML comentados — não há nenhuma service definition com profiles: [observability] ou profiles: [debug] ativo. O critério 'docker compose --profile observability config valida sem erros' falha porque nenhum serviço real carrega esse profile. Correção necessária: adicionar ao menos um serviço placeholder ativo (mesmo que minimal) com profiles: [observability] e profiles: [debug]."
+    },
+    {
+      "id": "US-007",
+      "title": "Adicionar scripts de conveniência e documentação de bootstrap no README",
+      "description": "Como desenvolvedor, quero comandos curtos documentados para subir, parar e resetar o ambiente sem precisar memorizar paths longos do compose.yml.",
+      "acceptanceCriteria": [
+        "package.json raiz tem script docker:up que executa docker compose -f infra/docker/compose.yml up --watch",
+        "package.json raiz tem script docker:down que executa docker compose -f infra/docker/compose.yml down",
+        "package.json raiz tem script docker:reset que executa docker compose -f infra/docker/compose.yml down -v (remove volumes)",
+        "package.json raiz tem script docker:logs que executa docker compose -f infra/docker/compose.yml logs -f",
+        "README.md na raiz tem seção ## Getting Started com os passos: cp .env.example .env.local → preencher variáveis → pnpm docker:up",
+        "README.md documenta acesso aos serviços (localhost:PORT_WEB para web, localhost:PORT_API para api)",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Added docker:up, docker:down, docker:reset, docker:logs scripts to root package.json. Created README.md at repo root with ## Getting Started section (cp .env.example .env.local → fill variables table → pnpm docker:up), service access table (localhost:5173 for web, localhost:3001 for api), and docker convenience scripts table. README also documents optional profiles and project structure."
+    }
+  ]
+}

@@ -40,7 +40,9 @@ export function AppLayout({
         <section className="app-editor">
           <div className="app-editor__content">
             {editor ?? (
-              <span>Selecione um arquivo para editar</span>
+              <span style={{ padding: "16px", display: "block", color: "var(--color-muted)" }}>
+                Selecione um arquivo para editar
+              </span>
             )}
           </div>
         </section>

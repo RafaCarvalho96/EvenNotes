@@ -1,0 +1,26 @@
+{
+  "name": "@evennotes/ai-pipelines",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  },
+  "dependencies": {
+    "@evennotes/ai-core": "workspace:*",
+    "@evennotes/observability": "workspace:*",
+    "@evennotes/prompts": "workspace:*"
+  }
+}

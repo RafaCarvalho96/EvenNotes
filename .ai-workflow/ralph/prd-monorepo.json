@@ -1,0 +1,153 @@
+{
+  "project": "EvenNotes",
+  "branchName": "ralph/monorepo-structure",
+  "description": "Monorepo structure - scaffold missing packages and directories to match the proposed architecture in PRD-06",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Scaffold packages/config package",
+      "description": "As a developer, I want a shared config package so that constants and environment helpers are not duplicated across apps and packages.",
+      "acceptanceCriteria": [
+        "Create packages/config/package.json with name @evennotes/config",
+        "Create packages/config/tsconfig.json extending tsconfig.base.json",
+        "Create packages/config/tsconfig.build.json for composite build",
+        "Create packages/config/src/index.ts exporting at minimum an empty module (placeholder)",
+        "Package is listed in pnpm-workspace.yaml glob (apps/* packages/* already covers it)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Created packages/config with package.json (@evennotes/config), tsconfig.json (extends tsconfig.base.json), tsconfig.build.json (composite build), and src/index.ts (empty module placeholder). Package registered in pnpm workspace. Typecheck passes."
+    },
+    {
+      "id": "US-002",
+      "title": "Scaffold packages/observability package",
+      "description": "As a developer, I want an observability package so that logging and tracing helpers are available consistently across api, cli and pipelines.",
+      "acceptanceCriteria": [
+        "Create packages/observability/package.json with name @evennotes/observability",
+        "Create packages/observability/tsconfig.json extending tsconfig.base.json",
+        "Create packages/observability/tsconfig.build.json for composite build",
+        "Create packages/observability/src/index.ts exporting a basic structured logger (e.g. a thin wrapper or re-export of pino/consola)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Created packages/observability with package.json (@evennotes/observability), tsconfig.json, tsconfig.build.json, and src/index.ts exporting a dependency-free structured logger: createLogger(name) returns a Logger with debug/info/warn/error methods that emit JSON lines via console.log/console.error. Typecheck passes."
+    },
+    {
+      "id": "US-003",
+      "title": "Scaffold packages/test-utils package",
+      "description": "As a developer, I want a test-utils package so that common test helpers and fixtures are reusable across all packages.",
+      "acceptanceCriteria": [
+        "Create packages/test-utils/package.json with name @evennotes/test-utils",
+        "Create packages/test-utils/tsconfig.json extending tsconfig.base.json",
+        "Create packages/test-utils/tsconfig.build.json for composite build",
+        "Create packages/test-utils/src/index.ts exporting at minimum a placeholder or a simple mock factory helper",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Created packages/test-utils with package.json (@evennotes/test-utils), tsconfig.json, tsconfig.build.json, and src/index.ts exporting createMock<T>(overrides?) and wait(ms) helpers. No external dependencies required. Typecheck passes."
+    },
+    {
+      "id": "US-004",
+      "title": "Scaffold packages/markdown-core package",
+      "description": "As a developer, I want a markdown-core package so that parse, render and transformation utilities live in a single reusable place.",
+      "acceptanceCriteria": [
+        "Create packages/markdown-core/package.json with name @evennotes/markdown-core",
+        "Create packages/markdown-core/tsconfig.json extending tsconfig.base.json",
+        "Create packages/markdown-core/tsconfig.build.json for composite build",
+        "Create packages/markdown-core/src/index.ts exporting at minimum a parseMarkdown and renderMarkdown stub (can use marked or unified as dependency)",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Created packages/markdown-core with package.json (@evennotes/markdown-core), tsconfig.json, tsconfig.build.json, and src/index.ts exporting parseMarkdown(content) and renderMarkdown(content) stubs. No external dependencies required. Typecheck passes."
+    },
+    {
+      "id": "US-005",
+      "title": "Scaffold packages/workspace-core package",
+      "description": "As a developer, I want a workspace-core package so that file listing, path rules, filters and security helpers are reusable by both api and cli.",
+      "acceptanceCriteria": [
+        "Create packages/workspace-core/package.json with name @evennotes/workspace-core",
+        "Create packages/workspace-core/tsconfig.json extending tsconfig.base.json",
+        "Create packages/workspace-core/tsconfig.build.json for composite build",
+        "Create packages/workspace-core/src/index.ts exporting at minimum a listFiles(dir: string) function stub",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Created packages/workspace-core with package.json (@evennotes/workspace-core), tsconfig.json, tsconfig.build.json, and src/index.ts exporting listFiles(dir): Promise<string[]> stub (dependency-free to avoid @types/node requirement). Typecheck passes."
+    },
+    {
+      "id": "US-006",
+      "title": "Scaffold packages/ui package",
+      "description": "As a developer, I want a ui package so that shared React components can be reused by apps/web without duplication.",
+      "acceptanceCriteria": [
+        "Create packages/ui/package.json with name @evennotes/ui",
+        "Create packages/ui/tsconfig.json extending tsconfig.base.json (with jsx: react-jsx)",
+        "Create packages/ui/tsconfig.build.json for composite build",
+        "Create packages/ui/src/index.ts exporting at minimum a placeholder (e.g. re-exporting an empty object or a stub Button component)",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Created packages/ui with package.json (@evennotes/ui, react/@types/react as peerDependencies), tsconfig.json (jsx: react-jsx), tsconfig.build.json, and src/index.ts exporting ButtonProps interface and Button stub component returning null. Typecheck passes."
+    },
+    {
+      "id": "US-007",
+      "title": "Scaffold apps/cli application",
+      "description": "As a developer, I want an apps/cli package so that terminal commands and backend/runner integration have a dedicated entry point.",
+      "acceptanceCriteria": [
+        "Create apps/cli/package.json with name @evennotes/cli and a bin entry pointing to dist/index.js",
+        "Create apps/cli/tsconfig.json extending tsconfig.base.json",
+        "Create apps/cli/tsconfig.build.json for composite build",
+        "Create apps/cli/src/index.ts with a minimal CLI stub (e.g. prints 'EvenNotes CLI' when run)",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "apps/cli already fully implemented by the CLI track. Contains package.json (@evennotes/cli with bin entry ./dist/index.js), tsconfig.json, tsconfig.build.json, src/index.ts, and full command implementations (health, pipelines, providers, run, workspace). Typecheck passes."
+    },
+    {
+      "id": "US-008",
+      "title": "Configure TypeScript path aliases",
+      "description": "As a developer, I want TypeScript path aliases defined in tsconfig.base.json so that inter-package imports use clean alias syntax instead of relative paths.",
+      "acceptanceCriteria": [
+        "tsconfig.base.json compilerOptions.paths includes aliases for all packages: @evennotes/contracts, @evennotes/ai-core, @evennotes/ai-pipelines, @evennotes/prompts, @evennotes/config, @evennotes/observability, @evennotes/test-utils, @evennotes/markdown-core, @evennotes/workspace-core, @evennotes/ui",
+        "Each alias points to the corresponding packages/*/src/index.ts",
+        "Typecheck passes across all packages (run pnpm -r typecheck)"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Added compilerOptions.paths to tsconfig.base.json with aliases for all 10 packages: @evennotes/contracts, ai-core, ai-pipelines, prompts, config, observability, test-utils, markdown-core, workspace-core, ui. Each alias points to the corresponding packages/*/src/index.ts. Typecheck passes across all new packages."
+    },
+    {
+      "id": "US-009",
+      "title": "Set up infra/docker directory",
+      "description": "As a developer, I want an infra/docker directory so that Dockerfile assets and compose overrides are separated from application source code.",
+      "acceptanceCriteria": [
+        "Create infra/docker/ directory with at minimum a .gitkeep or a README.md describing its purpose",
+        "If a docker-compose.yml or Dockerfile exists at root, move or reference it in infra/docker/",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "infra/docker already fully implemented by the DevOps track. Contains api.Dockerfile, web.Dockerfile, compose.yml, and .dockerignore. No action needed."
+    },
+    {
+      "id": "US-010",
+      "title": "Set up docs and scripts directories",
+      "description": "As a developer, I want docs/prd/, docs/adr/ and scripts/ directories so that documentation and automation scripts have dedicated, discoverable locations.",
+      "acceptanceCriteria": [
+        "Create docs/prd/ directory containing at minimum a README.md or an index with links to existing prds/",
+        "Create docs/adr/ directory with a README.md explaining the ADR convention",
+        "Create scripts/ directory with at minimum a README.md or a placeholder script",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "Created docs/prd/README.md (links to prds/ directory), docs/adr/README.md (explains ADR convention), and scripts/README.md (describes scripts directory purpose). Typecheck not affected by Markdown files."
+    }
+  ]
+}

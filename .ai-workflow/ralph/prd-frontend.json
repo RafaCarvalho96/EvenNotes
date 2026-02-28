@@ -65,8 +65,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "MarkdownEditor implementado com CodeMirror 6 (EditorView + EditorState + markdown()). Props: value: string, onChange: (value: string) => void, onSelectionChange?: (selected: string) => void. Sync de valor externo via useEffect com guard (currentValue !== value) para evitar loop. Callbacks via refs para não recriar o editor a cada render. Tema interno via EditorView.theme com height 100%, fontFamily monospace, padding no cm-content. CSS: .markdown-editor com height 100%, .cm-editor height 100%. AppLayout.css: removido padding de .app-editor__content (CodeMirror cuida do espaçamento interno); placeholder recupera padding via inline style. App.tsx: conecta MarkdownEditor com estados content e selectedText; DEMO_CONTENT com Markdown variado para teste. Typecheck passou sem erros."
     },
     {
       "id": "US-005",
@@ -82,8 +82,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "MarkdownPreview implementado com react-markdown v9 + remark-gfm + rehype-sanitize. Prop: content: string. Sem dangerouslySetInnerHTML — react-markdown renderiza via vdom. rehype-sanitize bloqueia scripts e HTML inseguro. GFM ativo: tabelas, task lists, strikethrough. MarkdownPreview.css estiliza headings, listas, tabelas, code blocks, blockquotes respeitando variáveis CSS do tema. App.tsx passa content ao AppLayout preview prop. AppLayout.css ajustado: app-preview__content usa overflow:hidden + flex para deixar MarkdownPreview controlar seu próprio scroll. Typecheck passou sem erros. Dev server confirmado respondendo em localhost:5175."
     },
     {
       "id": "US-006",
@@ -98,8 +98,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Hook useDebounce<T>(value, delay) criado em src/hooks/useDebounce.ts usando useEffect + setTimeout com cleanup. App.tsx importa o hook e cria debouncedContent = useDebounce(content, 300). Editor recebe content (sem debounce) para digitação fluida; MarkdownPreview recebe debouncedContent para atualizar 300ms após pausa na digitação. Estado continua gerenciado em App.tsx. Typecheck passou sem erros."
     },
     {
       "id": "US-007",
@@ -115,8 +115,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Hook useFileLoader(selectedPath) criado em src/hooks/useFileLoader.ts: estado discriminado (idle | loading | success | error), fetch para GET /api/files/content?path=<encoded>, AbortController cancela request em voo quando selectedPath muda. App.tsx atualizado: importa useFileLoader e ReactNode; remove DEMO_CONTENT; content inicial vazio; useEffect sincroniza fileLoader.status === 'success' → setContent(fileLoader.content); editorSlot condicional — loading mostra 'Carregando…' (color-muted italic), error mostra mensagem '⚠ Erro ao carregar arquivo: <message>' (color-error), success/idle mostra MarkdownEditor ou placeholder do AppLayout. Header já exibe currentFile={selectedFile} (nome do arquivo atual). Typecheck passou sem erros."
     },
     {
       "id": "US-008",
@@ -131,8 +131,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Hook useSaveFile(path, content, dirty) created: uses useDebounce(1000ms) internally, fires PUT /api/files/content only when dirty=true and path is defined. SaveStatus: 'idle'|'saving'|'saved'|'error'. App.tsx tracks isDirty (true on user edit, false on file load). Header displays status label with colour coding ('Salvando…' muted, 'Salvo' green, 'Erro ao salvar' red). Status resets to idle on new file open. Typecheck passes."
     },
     {
       "id": "US-009",
@@ -148,8 +148,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "CommandPalette.tsx + CommandPalette.css created. Opens via Ctrl+K (global keydown listener in App.tsx) or '⌘ AI Commands' header button. Lists summarize/rewrite/create-prd with label + description. Context = selectedText if non-empty, else full document content. ArrowUp/Down navigate, Enter confirms, Escape closes. onExecute({ command, context }) fires in App.tsx to trigger run. Context hint shows char count. Typecheck passes."
     },
     {
       "id": "US-010",
@@ -166,7 +166,7 @@
       ],
       "priority": 10,
       "passes": false,
-      "notes": ""
+      "notes": "FALHA PARCIAL: RunPanel.tsx implementa o fluxo SSE completo (POST → runId → EventSource → token_stream/completed/failed), botão de cancelar funcional e UI responsiva. No entanto o componente ExecutionStatus não existe como arquivo separado — o status (idle/running/success/error com pulsing dot) está renderizado inline dentro do próprio RunPanel. O critério 'Componente ExecutionStatus exibe estados: idle, running, success, error' requer um componente distinto (arquivo próprio e export nomeado). Correção necessária: extrair o bloco de status para apps/web/src/components/ExecutionStatus.tsx e importá-lo no RunPanel."
     },
     {
       "id": "US-011",
@@ -183,8 +183,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "DiffOrResultPanel.tsx + DiffOrResultPanel.css created. Props: result, onClose, onReplaceSelection, onAppend, onSaveAs. 'Copiar' uses navigator.clipboard with ✓ confirmation flash. 'Substituir seleção' calls editorRef.current.replaceSelection() via MarkdownEditorHandle (useImperativeHandle on forwardRef). 'Anexar ao fim' appends '\n\n' + result to content. 'Salvar como novo arquivo' shows inline input; on confirm calls PUT /api/files/content. Minimize (▼/▲) and close (✕) buttons. MarkdownEditor updated to forwardRef with imperative replaceSelection. Typecheck passes."
     },
     {
       "id": "US-012",
@@ -199,8 +199,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 12,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "useTheme.ts hook created: manages 'light'|'dark' state, reads localStorage key 'evennotes-theme' on init (falls back to OS prefers-color-scheme), writes to localStorage on change, applies document.documentElement.setAttribute('data-theme', theme). index.css already has [data-theme='dark'] with all CSS vars. MarkdownEditor updated with Compartment-based theme reconfiguration: buildThemeExtension() returns themed EditorView.theme() with appropriate bg/text/caret/selection colours; dispatched via Compartment.reconfigure() when theme prop changes (no editor recreation). Toggle button (🌙/☀️) in AppLayout header. Typecheck passes."
     }
   ]
 }

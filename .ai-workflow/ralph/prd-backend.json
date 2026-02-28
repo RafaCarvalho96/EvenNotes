@@ -35,8 +35,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "packages/contracts criado com @evennotes/contracts. Exporta CommandTarget, CommandPayload, RunStatus, Run, RunEventType e RunEvent via src/index.ts. Build emite dist/index.d.ts. Typecheck passa."
     },
     {
       "id": "US-003",
@@ -51,8 +51,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "GET /api/workspace/tree implementado em apps/api/src/routes/workspace.ts. Lista recursivamente arquivos .md abaixo de WORKSPACE_ROOT, ignora node_modules/.git/.DS_Store, retorna paths relativos com '/' como separador. Retorna 400 se WORKSPACE_ROOT não está definido ou não existe. Registrado em app.ts. Typecheck passa."
     },
     {
       "id": "US-004",
@@ -67,8 +67,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "GET /api/files/content?path=<relativo> implementado em apps/api/src/routes/files.ts. Retorna 200 com { path, content } em UTF-8. Path traversal bloqueado com path.resolve comparando contra resolvedRoot. Retorna 400 se path ausente ou vazio, 404 se arquivo não existe (ENOENT). Registrado em app.ts. Typecheck passa."
     },
     {
       "id": "US-005",
@@ -83,8 +83,8 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "PUT /api/files/content implementado em apps/api/src/routes/files.ts. Valida body { path, content } com Zod. Bloqueia path traversal comparando resolvedFile contra resolvedRoot. Escreve conteúdo em UTF-8 com fs.writeFile. Retorna 200 com { path, savedAt: <ISO string> }. Retorna 400 para body inválido com detalhes do erro Zod. Typecheck passa."
     },
     {
       "id": "US-006",
@@ -99,8 +99,8 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "POST /api/commands/run implementado em apps/api/src/routes/commands.ts. Valida CommandPayload com Zod (command enum 'summarize'|'rewrite'|'create-prd', target, params?, provider?). Cria Run com crypto.randomUUID(), status 'created', registrado em Map<string, Run> em apps/api/src/store/runs.ts. Retorna 202 com { runId, status: 'created', streamUrl: '/api/runs/:runId/events' }. Retorna 400 para payload inválido com detalhes Zod. @evennotes/contracts adicionado como dependência workspace. Typecheck passa."
     },
     {
       "id": "US-007",
@@ -113,8 +113,8 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "GET /api/runs/:id implementado em apps/api/src/routes/runs.ts. Retorna 200 com objeto Run completo (id, command, status, createdAt, completedAt?, output?) buscando no Map runsStore. Retorna 404 com { error: 'Run not found' } se o id não existe. Registrado em app.ts. Typecheck passa."
     },
     {
       "id": "US-008",
@@ -129,8 +129,8 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "GET /api/runs/:id/events implementado em apps/api/src/routes/runs.ts. Abre conexão SSE com Content-Type text/event-stream (reply.hijack() + raw.writeHead). Retorna 404 se runId não existe. EventEmitter centralizado criado em apps/api/src/store/runEvents.ts (runEventEmitter + emitRunEvent helper), canal por runId 'run:<id>'. Servidor encerra a conexão (raw.end()) após receber run.completed ou run.failed. Listener removido também no evento 'close' do request para limpeza em desconexão antecipada do cliente. Typecheck passa."
     },
     {
       "id": "US-009",
@@ -145,8 +145,8 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "packages/ai-core já tinha ILlmProvider, LlmOptions, MockLlmProvider e OpenAILlmProvider exportados em src/index.ts. package.json com name @evennotes/ai-core. MockLlmProvider instanciável sem config externa - retorna stream de tokens simulado. Typecheck passa."
     },
     {
       "id": "US-010",
@@ -164,8 +164,8 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "commands.ts já dispara execução async (void IIFE) sem bloquear 202. Adicionado emitRunEvent run.created após criação do run no Map. Adicionado emitRunEvent run.model_started antes de chamar pipeline.run(). run.token_stream, run.completed e run.failed já emitidos via eventos do pipeline. MockLlmProvider usado via getProvider(input.provider) que lê LLM_PROVIDER do env (default 'mock'). Run.status e Run.output atualizados no Map. Typecheck passa."
     },
     {
       "id": "US-011",
@@ -179,8 +179,8 @@
         "Typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Criado apps/api/src/routes/config.ts com GET /api/config/providers (retorna array de {id, name, available} - available true se OPENAI_API_KEY definida; mock sempre available) e GET /api/config/pipelines (retorna summarize, rewrite, create-prd com id, name, description). Rota registrada em app.ts. Typecheck passa."
     }
   ]
 }
