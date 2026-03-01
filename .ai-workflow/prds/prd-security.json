@@ -1,6 +1,6 @@
 {
   "project": "EvenNotes",
-  "branchName": "ralph/security-quality-observability",
+  "branchName": "feature/security-quality-observability",
   "description": "Security, Quality and Observability - Transversal requirements covering workspace boundary enforcement, Markdown sanitization, secret management, test suites, structured logging, optional LangSmith tracing, and pipeline resilience.",
   "userStories": [
     {

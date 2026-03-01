@@ -1,6 +1,6 @@
 {
   "project": "EvenNotes",
-  "branchName": "ralph/code-quality-refactoring",
+  "branchName": "refactor/code-quality-refactoring",
   "description": "Refactoring de Qualidade de Código — eliminar duplicação, reduzir acoplamento e clarificar responsabilidades sem alterar nenhum contrato público de API ou comportamento observável.",
   "userStories": [
     {

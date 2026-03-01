@@ -1,9 +1,9 @@
 {
   "project": "EvenNotes",
-  "branchName": "ralph/gemini-provider",
+  "branchName": "feature/gemini-provider",
   "description": "Adicionar suporte ao provider Google Gemini em packages/ai-core usando LangChain (@langchain/google-genai) e, na mesma oportunidade, migrar OpenAILlmProvider para @langchain/openai — mantendo ILlmProvider como contrato interno e zero mudanças nas pipelines, API ou CLI.",
   "context": {
-    "dependsOn": "ralph/ai-pipeline-cli",
+    "dependsOn": "feature/ai-pipeline-cli",
     "summary": "A branch anterior entregou: ILlmProvider, LlmOptions, MockLlmProvider, OpenAILlmProvider (raw openai SDK v4), providerRegistry e getProvider() em packages/ai-core; SummarizePipeline, RewritePipeline e CreatePrdPipeline em packages/ai-pipelines consumindo ILlmProvider; integração SSE na API; CLI completo. O projeto já usa o ecossistema LangChain para tracing (LangSmith via LANGCHAIN_TRACING_V2 / LANGSMITH_API_KEY), tornando natural adotar @langchain/openai e @langchain/google-genai como adapters dos providers.",
     "interfaceToPreserve": "ILlmProvider: { generate(prompt: string, options?: LlmOptions): AsyncIterable<string> } — nenhuma pipeline ou rota deve ser alterada",
     "langchainStreamingPattern": "BaseChatModel.stream(messages) → AsyncIterable<AIMessageChunk> → chunk.content as string",

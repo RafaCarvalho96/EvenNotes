@@ -1,6 +1,6 @@
 {
   "project": "EvenNotes",
-  "branchName": "ralph/ai-pipeline-cli",
+  "branchName": "feature/ai-pipeline-cli",
   "description": "AI Pipeline + CLI - Pipelines de IA (summarize, rewrite, create-prd) com LangChain, adapters de provider LLM e CLI Commander.js com todos os comandos do MVP",
   "userStories": [
     {

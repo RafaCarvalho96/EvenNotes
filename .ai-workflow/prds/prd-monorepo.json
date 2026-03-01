@@ -1,6 +1,6 @@
 {
   "project": "EvenNotes",
-  "branchName": "ralph/monorepo-structure",
+  "branchName": "chore/monorepo-structure",
   "description": "Monorepo structure - scaffold missing packages and directories to match the proposed architecture in PRD-06",
   "userStories": [
     {

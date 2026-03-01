@@ -1,9 +1,9 @@
 {
   "project": "EvenNotes",
-  "branchName": "ralph/ai-chat-edit",
+  "branchName": "feature/ai-chat-edit",
   "description": "Substituir o CommandPalette de comandos fixos por uma entrada de chat em linguagem natural — o usuário descreve a edição desejada e a ChatPipeline interpreta a instrução e retorna o conteúdo editado.",
   "context": {
-    "dependsOn": "ralph/code-quality-refactoring",
+    "dependsOn": "refactor/code-quality-refactoring",
     "summary": "A stack atual possui: CommandPalette (Ctrl+K) com 3 comandos fixos (summarize, rewrite, create-prd); pipelines em packages/ai-pipelines consumindo ILlmProvider via runPipeline em base-pipeline.ts; API com POST /api/commands/run → SSE /api/runs/:id/events; DiffOrResultPanel para aceitar/rejeitar resultado. O padrão runPipeline(input, buildPromptFn, name, emptyError) é o único ponto de extensão necessário para adicionar ChatPipeline.",
     "pipelinePattern": "Implementar PipelineRunner com run(input): AsyncIterable<PipelineEvent>; delegar stages 1-2-4-5 ao runPipeline() de base-pipeline.ts; implementar apenas stage 3 (buildPromptFn).",
     "contractsPattern": "CommandPayload.command é union literal em packages/contracts/src/index.ts — adicionar 'chat'. API valida com Zod em apps/api/src/routes/commands.ts. pipelineMap em apps/api/src/use-cases/execute-command.ts mapeia command → PipelineRunner factory.",

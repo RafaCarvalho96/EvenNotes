@@ -1,6 +1,6 @@
 {
   "project": "EvenNotes",
-  "branchName": "ralph/fix-editor-json-parse-html-response",
+  "branchName": "fix/editor-json-parse-html-response",
   "description": "Fix: Editor displays JSON parse error when loading file because Vite dev server returns HTML instead of proxying /api/* requests to the Fastify API",
   "userStories": [
     {

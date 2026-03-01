@@ -4,7 +4,7 @@ description: "Convert PRDs to prd-<feature>.json format for the Ralph autonomous
 user-invocable: true
 ---
 
-# Ralph PRD Converter
+# PRD Converter
 
 Converts existing PRDs to the prd-<feature>.json format that Ralph uses for autonomous execution.
 
@@ -21,7 +21,7 @@ Take a PRD (markdown file or text) and convert it to `prd-${feature}.json` in yo
 ```json
 {
   "project": "[Project Name]",
-  "branchName": "ralph/[feature-name-kebab-case]",
+  "branchName": "feature/[feature-name-kebab-case]",
   "description": "[Feature description from PRD title/intro]",
   "userStories": [
     {
@@ -165,7 +165,7 @@ Add ability to mark tasks with different statuses.
 ```json
 {
   "project": "TaskApp",
-  "branchName": "ralph/task-status",
+  "branchName": "feature/task-status",
   "description": "Task Status Feature - Track task progress with status indicators",
   "userStories": [
     {
@@ -240,9 +240,7 @@ Add ability to mark tasks with different statuses.
    - Create archive folder: `archive/YYYY-MM-DD-feature-name/`
    - Copy current `prd-<feature>.json` and `progress.txt` to archive
    - Reset `progress.txt` with fresh header
-
-**The ralph.sh script handles this automatically** when you run it, but if you are manually updating prd-<feature>.json between runs, archive first.
-
+   
 ---
 
 ## Checklist Before Saving

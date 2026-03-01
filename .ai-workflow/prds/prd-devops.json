@@ -1,6 +1,6 @@
 {
   "project": "EvenNotes",
-  "branchName": "ralph/devops-compose",
+  "branchName": "feature/devops-compose",
   "description": "DevOps e Docker Compose - ambiente local reproduzível com Dockerfiles multi-stage, profiles, watch mode e configuração de variáveis de ambiente",
   "userStories": [
     {

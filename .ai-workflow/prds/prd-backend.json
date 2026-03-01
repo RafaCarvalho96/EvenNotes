@@ -1,6 +1,6 @@
 {
   "project": "EvenNotes",
-  "branchName": "ralph/backend-api",
+  "branchName": "feature/backend-api",
   "description": "Backend API mínima - Fastify + TypeScript com endpoints de workspace, leitura/escrita de arquivos, execução de comandos de IA, streaming SSE e módulo LLM provider",
   "userStories": [
     {

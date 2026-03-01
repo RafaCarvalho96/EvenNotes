@@ -1,6 +1,6 @@
 {
   "project": "EvenNotes",
-  "branchName": "ralph/fix-docker-tsx-module-not-found",
+  "branchName": "fix/docker-tsx-module-not-found",
   "description": "Fix: Docker API container crash-loop caused by bind mount overwriting container node_modules (tsx MODULE_NOT_FOUND)",
   "userStories": [
     {

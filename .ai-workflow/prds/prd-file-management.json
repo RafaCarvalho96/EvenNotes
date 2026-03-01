@@ -1,6 +1,6 @@
 {
   "project": "EvenNotes",
-  "branchName": "ralph/file-management",
+  "branchName": "feature/file-management",
   "description": "Gerenciamento de Arquivos - criar, renomear e excluir arquivos .md inteiramente pela UI",
   "userStories": [
     {

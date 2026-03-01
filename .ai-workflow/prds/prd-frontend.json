@@ -1,6 +1,6 @@
 {
   "project": "EvenNotes",
-  "branchName": "ralph/frontend-editor",
+  "branchName": "feature/frontend-editor",
   "description": "Frontend Editor - Editor Markdown com preview lado a lado, árvore de arquivos, autosave e execução de comandos de IA",
   "userStories": [
     {
