@@ -6,7 +6,7 @@ import { runsStore } from '../store/runs.js'
 import { emitRunEvent } from '../store/runEvents.js'
 
 interface CommandPayload {
-  command: 'summarize' | 'rewrite' | 'create-prd'
+  command: 'summarize' | 'rewrite' | 'create-prd' | 'chat'
   target: { type: string; path: string }
   params?: Record<string, unknown>
   provider?: string

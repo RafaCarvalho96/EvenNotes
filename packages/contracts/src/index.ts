@@ -7,7 +7,7 @@ export type CommandTarget = {
 }
 
 export type CommandPayload = {
-  command: 'summarize' | 'rewrite' | 'create-prd'
+  command: 'summarize' | 'rewrite' | 'create-prd' | 'chat'
   target: CommandTarget
   params?: Record<string, unknown>
   provider?: string
