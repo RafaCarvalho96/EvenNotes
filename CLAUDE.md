@@ -20,6 +20,9 @@ pnpm typecheck
 # Lint all packages
 pnpm lint
 
+# Run all tests
+pnpm test
+
 # Run tests for a specific package
 pnpm --filter @evennotes/api test
 pnpm --filter @evennotes/cli test
@@ -37,6 +40,8 @@ pnpm docker:logs      # follow logs
 
 Env setup: copy `.env.example` to `.env.local` and fill in values before running Docker. `WORKSPACE_ROOT` and `OPENAI_API_KEY` are the key variables. `LLM_PROVIDER` defaults to `mock` — no API key needed for local dev.
 
+Pipeline resilience is tunable via `PIPELINE_TIMEOUT_MS` (default 30 000 ms) and `PIPELINE_MAX_RETRIES` (default 2).
+
 ## Architecture
 
 ### Monorepo layout
@@ -51,11 +56,14 @@ packages/contracts      – shared TypeScript types (Run, RunEvent, CommandPaylo
 packages/ai-core        – ILlmProvider interface + mock/openai/gemini adapters
 packages/ai-pipelines   – SummarizePipeline, RewritePipeline, CreatePrdPipeline
 packages/prompts        – versioned prompt templates
-packages/markdown-core  – markdown parse/transform utilities
-packages/workspace-core – file listing and path utilities
+packages/markdown-core  – markdown parse/transform utilities (stub)
+packages/workspace-core – file listing and path utilities (stub)
 packages/observability  – logging/tracing helpers
-packages/ui             – shared React components
+packages/ui             – shared React components (stub)
+packages/test-utils     – test helpers (stub)
 ```
+
+Packages marked **(stub)** export empty/placeholder implementations — they exist for dependency graph completeness and are ready to be filled in.
 
 ### AI pipeline execution flow
 
@@ -66,6 +74,19 @@ packages/ui             – shared React components
 5. Each event is forwarded to an `EventEmitter` keyed by `run:<runId>`.
 6. `RunPanel` subscribes to `GET /api/runs/:id/events` (SSE). The SSE handler listens on the same emitter and writes `data: <json>\n\n` — closing the stream on `run.completed` or `run.failed`.
 7. Once complete, `App.tsx` switches `appMode` to `"result"` and shows `DiffOrResultPanel`.
+
+### Adding a new pipeline
+
+1. Add a prompt template in `packages/prompts/src/` (use `PromptTemplate` type, list `placeholders`).
+2. Create `packages/ai-pipelines/src/<name>-pipeline.ts` extending `BasePipeline`.
+3. Register it in the `pipelineMap` inside `apps/api/src/use-cases/execute-command.ts`.
+4. Add the command name to the `CommandPayload` union in `packages/contracts/src/index.ts`.
+
+### Adding a new LLM provider
+
+1. Implement `ILlmProvider` from `packages/ai-core/src/provider.ts` (async generator for tokens).
+2. Register the factory in `providerRegistry` inside `packages/ai-core/src/registry.ts`.
+3. Add the provider name to the `LLM_PROVIDER` Zod enum in `apps/api/src/config.ts`.
 
 ### LLM provider selection
 
@@ -91,3 +112,13 @@ The editor (`MarkdownEditor`, CodeMirror 6) exposes an imperative `ref` handle w
 ### Vite proxy
 
 `apps/web/vite.config.ts` proxies `/api/*` → `http://localhost:3001` so the frontend can use relative URLs in development without CORS issues.
+
+### Prompt templates
+
+`packages/prompts` stores versioned templates with a `system` message, a `user` message with `{placeholder}` tokens, and a `placeholders` array. The `CREATE_PRD_PROMPT` generates output in **Portuguese (pt-BR)** — keep that locale when modifying it.
+
+### Testing conventions
+
+- API tests use `mkdtempSync()` to create an isolated temp workspace; set `WORKSPACE_ROOT` before any dynamic import of the server.
+- Vitest is used across all packages. Supertest is used for HTTP-level API assertions.
+- CLI has smoke tests (`src/__tests__/smoke.test.ts`) that invoke the binary directly.
