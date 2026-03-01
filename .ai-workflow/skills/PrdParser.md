@@ -12,7 +12,7 @@ Converts existing PRDs to the prd-<feature>.json format that Ralph uses for auto
 
 ## The Job
 
-Take a PRD (markdown file or text) and convert it to `prd-${feature}.json` in your ralph directory.
+Take a PRD (markdown file or text) and convert it to `prd-${feature}.json` in your prds directory.
 
 ---
 

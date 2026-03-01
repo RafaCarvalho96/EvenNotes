@@ -18,9 +18,9 @@ Pure orchestrator: does not write code, does not run tests. Iterates stories, sp
 ---
 
 ## Step 0 — Locate PRD
-Search for file: `.ai-workflow/ralph/prd-<feature>.json` — name provided by user
+Search for file: `.ai-workflow/prds/prd-<feature>.json` — name provided by user
 
-Set `<ralph-dir>` = directory where the prd-<feature>.json was found. All temp files are written inside `<ralph-dir>`.
+Set `<prds-dir>` = directory where the prd-<feature>.json was found. All temp files are written inside `<prds-dir>`.
 
 Validate: every story has `id`, `title`, `description`, `acceptanceCriteria[]`; at least one has `passes: false`. If not found: stop execution.
 
@@ -57,7 +57,7 @@ Never reset a branch that already has commits. Skip stories with `passes: true`.
 
 For each story in ascending `priority` where `passes === false`:
 
-### Write `<ralph-dir>/current-story.txt`
+### Write `<prds-dir>/current-story.txt`
 
 ```
 STORY SNAPSHOT
@@ -87,10 +87,10 @@ Acceptance Criteria:
 You are the Implementor for story <id>: "<title>".
 Implement ONLY what the acceptance criteria require. Do not touch out-of-scope code.
 Follow CLAUDE.md conventions. Do not implement future stories.
-[if retry] Read <ralph-dir>/verify-report.txt to understand what failed.
+[if retry] Read <prds-dir>/verify-report.txt to understand what failed.
 
-On blocker → write <ralph-dir>/implementor-error.txt (one line). Stop.
-On success → write <ralph-dir>/changed-files.txt (one path per line, relative). Stop.
+On blocker → write <prds-dir>/implementor-error.txt (one line). Stop.
+On success → write <prds-dir>/changed-files.txt (one path per line, relative). Stop.
 ```
 
 **Orchestrator checks:**
@@ -119,7 +119,7 @@ Criterion checks:
   file/field existence → read + grep
   behaviour assertion  → run the relevant command
 
-Write <ralph-dir>/verify-report.txt:
+Write <prds-dir>/verify-report.txt:
   STATUS: PASS | FAIL
   CRITERIA:
     [PASS] <criterion>
@@ -158,7 +158,7 @@ Steps:
   2. git status  ← confirm staged files
   3. git commit -m "<message>"
   4. git log --oneline -1
-  5. Write 7-char SHA to <ralph-dir>/commit-sha.txt
+  5. Write 7-char SHA to <prds-dir>/commit-sha.txt
 Do not push. Stop.
 
 CHANGED_FILES:
@@ -186,16 +186,16 @@ Write prd-<feature>.json back. Do not change any other field. Stop.
 
 **On success — update progress.txt, then delete temp files:**
 
-Append to `<ralph-dir>/progress.txt`:
+Append to `<prds-dir>/progress.txt`:
 ```
 [<timestamp>] <id> ✓  <title>  [<sha>]
 ```
 
 Delete:
 ```
-<ralph-dir>/current-story.txt   <ralph-dir>/changed-files.txt
-<ralph-dir>/verify-report.txt   <ralph-dir>/commit-sha.txt
-<ralph-dir>/implementor-error.txt  (if exists)
+<prds-dir>/current-story.txt   <prds-dir>/changed-files.txt
+<prds-dir>/verify-report.txt   <prds-dir>/commit-sha.txt
+<prds-dir>/implementor-error.txt  (if exists)
 ```
 
 → Next story.
@@ -239,7 +239,7 @@ Status: READY FOR PULL REQUEST
 
 ## Resuming an Interrupted Run
 
-Re-read `prd-<feature>.json` — `passes: true` stories are done. Check leftover temp files in `<ralph-dir>`:
+Re-read `prd-<feature>.json` — `passes: true` stories are done. Check leftover temp files in `<prds-dir>`:
 
 | Temp files present | Resume from |
 |---|---|
