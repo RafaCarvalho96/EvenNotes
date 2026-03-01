@@ -34,7 +34,7 @@ Derive `COMMIT_TYPE` from the prefix:
 
 | `branchName` prefix | `COMMIT_TYPE` |
 |---|---|
-| `ralph/` or `feature/` | `feat` |
+| `feature/` | `feat` |
 | `fix/` | `fix` |
 | `refactor/` | `refactor` |
 | anything else | `feat` |
