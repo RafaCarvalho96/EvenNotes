@@ -1,6 +1,6 @@
 ---
 name: PrdExecutor
-description: "Execute all user stories from a prd.json file sequentially. Spawns one subagent per complex task (implement, verify, commit, update-prd), each with a fresh context window. Triggers on: execute prd, run prd, execute stories, run all stories, start prd execution."
+description: "Execute all user stories from a prd-<feature>.json file sequentially. Spawns one subagent per complex task (implement, verify, commit, update-prd), each with a fresh context window. Triggers on: execute prd, run prd, execute stories, run all stories, start prd execution."
 user-invocable: true
 ---
 
@@ -13,26 +13,22 @@ Pure orchestrator: does not write code, does not run tests. Iterates stories, sp
 | Implement story | **Subagent A — Implementor** | Fresh per story |
 | Verify criteria | **Subagent B — Verifier** | Fresh per story |
 | Commit changes | **Subagent C — GitUser** | Fresh per story |
-| Update prd.json | **Subagent D — PrdUpdater** | Fresh per story |
+| Update prd-<feature>.json | **Subagent D — PrdUpdater** | Fresh per story |
 
 ---
 
 ## Step 0 — Locate PRD
+Search for file: `.ai-workflow/ralph/prd-<feature>.json` — name provided by user
 
-Search in order, stop at first match:
-1. `.ai-workflow/ralph/prd-<feature>.json` — name provided by user
-2. `.ai-workflow/ralph/prd.json`
-3. `prd.json` at repo root
+Set `<ralph-dir>` = directory where the prd-<feature>.json was found. All temp files are written inside `<ralph-dir>`.
 
-Set `<ralph-dir>` = directory where the prd.json was found. All temp files are written inside `<ralph-dir>`.
-
-Validate: every story has `id`, `title`, `description`, `acceptanceCriteria[]`; at least one has `passes: false`. If not found: HALT — run **PrdParser** first.
+Validate: every story has `id`, `title`, `description`, `acceptanceCriteria[]`; at least one has `passes: false`. If not found: stop execution.
 
 ---
 
 ## Step 1 — Derive Branch
 
-The `branchName` field in prd.json is authoritative. Use it directly as `WORKING_BRANCH`.
+The `branchName` field in prd-<feature>.json is authoritative. Use it directly as `WORKING_BRANCH`.
 
 Derive `COMMIT_TYPE` from the prefix:
 
@@ -152,15 +148,13 @@ Stop.
 You are GitUser. Stage and commit the CHANGED_FILES. Do not read source files. Do not run tests.
 
 Commit message:
-  <COMMIT_TYPE>(<scope>): <story title>
+  <COMMIT_TYPE>: <story title>
 
   Story: <id>
   <story description — first sentence>
 
-<scope> = most specific package/dir from CHANGED_FILES.
-
 Steps:
-  1. git add <each file — never git add .>
+  1. git add <each changed file — never git add .>
   2. git status  ← confirm staged files
   3. git commit -m "<message>"
   4. git log --oneline -1
@@ -177,7 +171,7 @@ CHANGED_FILES:
 
 ### Subagent D — PrdUpdater
 
-**Load:** `prd.json`, `current-story.txt`, `commit-sha.txt`, `verify-report.txt`.
+**Load:** `prd-<feature>.json`, `current-story.txt`, `commit-sha.txt`, `verify-report.txt`.
 
 **Prompt:**
 ```
@@ -185,10 +179,10 @@ You are PrdUpdater. Find the story matching the id in current-story.txt.
 Update ONLY:
   "passes": true,
   "notes": "Completed in commit <SHA>. Criteria: <comma-separated PASS list>."
-Write prd.json back. Do not change any other field. Stop.
+Write prd-<feature>.json back. Do not change any other field. Stop.
 ```
 
-**Orchestrator checks:** Re-read `prd.json`; confirm `passes === true`. If not: HALT.
+**Orchestrator checks:** Re-read `prd-<feature>.json`; confirm `passes === true`. If not: HALT.
 
 **On success — update progress.txt, then delete temp files:**
 
@@ -245,7 +239,7 @@ Status: READY FOR PULL REQUEST
 
 ## Resuming an Interrupted Run
 
-Re-read `prd.json` — `passes: true` stories are done. Check leftover temp files in `<ralph-dir>`:
+Re-read `prd-<feature>.json` — `passes: true` stories are done. Check leftover temp files in `<ralph-dir>`:
 
 | Temp files present | Resume from |
 |---|---|
@@ -260,7 +254,7 @@ Re-read `prd.json` — `passes: true` stories are done. Check leftover temp file
 
 | Situation | Action |
 |---|---|
-| `prd.json` not found | HALT — run PrdParser |
+| `prd-<feature>.json` not found | HALT — run PrdParser |
 | Working tree dirty | HALT — commit or stash |
 | `implementor-error.txt` exists | HALT — surface error |
 | Verifier FAIL ×2 | HALT — ask user |
@@ -274,7 +268,7 @@ Re-read `prd.json` — `passes: true` stories are done. Check leftover temp file
 
 ## Pre-flight Checklist
 
-- [ ] `prd.json` valid, at least one `passes: false` story
+- [ ] `prd-<feature>.json` valid, at least one `passes: false` story
 - [ ] Stories in dependency order (backend before frontend)
 - [ ] Working tree clean (`git status`)
 - [ ] Base branch up to date (`git pull`)
