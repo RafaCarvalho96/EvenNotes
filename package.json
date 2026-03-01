@@ -11,6 +11,7 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
     "lint": "turbo run lint",
     "docker:up": "docker compose -f infra/docker/compose.yml up --watch",
     "docker:down": "docker compose -f infra/docker/compose.yml down",

@@ -141,24 +141,34 @@ Stop.
 
 ### Subagent C — GitUser
 
-**Load:** `current-story.txt`, `verify-report.txt`.
+**Load:** `current-story.txt`, `verify-report.txt`, each file listed in CHANGED_FILES.
 
 **Prompt:**
 ```
-You are GitUser. Stage and commit the CHANGED_FILES. Do not read source files. Do not run tests.
+You are GitUser. Stage and commit the CHANGED_FILES. Do not run tests.
 
-Commit message:
-  <COMMIT_TYPE>: <story title>
+Read each file in CHANGED_FILES to understand what was actually changed, then write a
+commit message that describes the code change — not the story metadata.
 
+Commit message format:
+  <COMMIT_TYPE>: <imperative summary of the code change (≤72 chars)>
+
+  <One sentence explaining WHY the change was made, derived from the diff, not the story title.>
   Story: <id>
-  <story description — first sentence>
+
+Rules for the subject line:
+  - Describe what the code now does (e.g. "add ChatEditPipeline to pipeline map")
+  - Do NOT copy the story title verbatim
+  - Use imperative mood ("add", "fix", "remove", "expose", "rename")
+  - Keep it under 72 characters
 
 Steps:
-  1. git add <each changed file — never git add .>
-  2. git status  ← confirm staged files
-  3. git commit -m "<message>"
-  4. git log --oneline -1
-  5. Write 7-char SHA to <prds-dir>/commit-sha.txt
+  1. Read each changed file to understand the diff
+  2. git add <each changed file — never git add .>
+  3. git status  ← confirm staged files
+  4. git commit -m "<message>"
+  5. git log --oneline -1
+  6. Write 7-char SHA to <prds-dir>/commit-sha.txt
 Do not push. Stop.
 
 CHANGED_FILES:
