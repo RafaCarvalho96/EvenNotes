@@ -2,3 +2,4 @@ export type { PipelineInput, PipelineEvent, PipelineOutput, PipelineRunner } fro
 export { SummarizePipeline } from './summarize.js'
 export { RewritePipeline } from './rewrite.js'
 export { CreatePrdPipeline } from './create-prd.js'
+export { ChatPipeline } from './chat.js'
