@@ -4,6 +4,7 @@ import "./CommandPalette.css";
 export interface CommandPalettePayload {
   command: string;
   context: string;
+  params?: { userMessage?: string };
 }
 
 interface CommandPaletteProps {

@@ -12,6 +12,7 @@ export function useCommandRun(
   target: RunTarget,
   context: string,
   onResult?: (result: string) => void,
+  params?: Record<string, unknown>,
 ) {
   const [status, setStatus] = useState<RunStatus>("idle");
   const [output, setOutput] = useState("");
@@ -35,7 +36,7 @@ export function useCommandRun(
         const res = await fetch("/api/commands/run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ command, target, params: { context } }),
+          body: JSON.stringify({ command, target, params: { context, ...params } }),
           signal: controller.signal,
         });
 

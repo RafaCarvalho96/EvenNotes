@@ -1,10 +1,10 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import "./index.css";
 import { AppLayout } from "./components/AppLayout";
 import { WorkspaceTree } from "./components/WorkspaceTree";
 import { MarkdownEditor } from "./components/MarkdownEditor";
 import { MarkdownPreview } from "./components/MarkdownPreview";
-import { CommandPalette } from "./components/CommandPalette";
+import { ChatInput } from "./components/ChatInput";
 import { AgentsPanel } from "./components/AgentsPanel";
 import { useEditorState } from "./hooks/useEditorState";
 import { useTheme } from "./hooks/useTheme";
@@ -35,9 +35,6 @@ export default function App() {
   // ── Workspace file list ───────────────────────────────────────────────────
   const workspaceTree = useWorkspaceTree();
 
-  // ── US-009: Command Palette ───────────────────────────────────────────────
-  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
-
   // ── US-012: Run state (appMode, pendingRun, runResult, callbacks) ─────────
   const {
     appMode,
@@ -52,18 +49,6 @@ export default function App() {
     handleAppend,
     handleSaveAs,
   } = useRunState(editorRef, setContent, setIsDirty);
-
-  // ── Ctrl+K → open command palette (only when a file is open) ──────────────
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-        e.preventDefault();
-        if (selectedFile) setIsPaletteOpen((open) => !open);
-      }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [selectedFile]);
 
   // ── Save status label ─────────────────────────────────────────────────────
   const saveLabel: Record<typeof saveStatus, string> = {
@@ -94,26 +79,6 @@ export default function App() {
           {saveLabel[saveStatus]}
         </span>
       )}
-
-      {/* US-009: open palette button */}
-      <button
-        onClick={() => selectedFile && setIsPaletteOpen(true)}
-        disabled={!selectedFile}
-        style={{
-          fontSize: 12,
-          padding: "4px 10px",
-          borderRadius: 4,
-          border: "1px solid var(--color-border)",
-          background: "var(--color-surface)",
-          color: selectedFile ? "var(--color-text)" : "var(--color-muted)",
-          cursor: selectedFile ? "pointer" : "not-allowed",
-          whiteSpace: "nowrap",
-          opacity: selectedFile ? 1 : 0.5,
-        }}
-        title={selectedFile ? "Open command palette (Ctrl+K)" : "Open a file first to use AI commands"}
-      >
-        ⌘ AI Commands
-      </button>
 
       {/* US-012: theme toggle */}
       <button
@@ -164,16 +129,28 @@ export default function App() {
     );
   } else if (selectedFile) {
     editorSlot = (
-      <MarkdownEditor
-        ref={editorRef}
-        value={content}
-        onChange={(val) => {
-          setContent(val);
-          setIsDirty(true);
-        }}
-        onSelectionChange={setSelectedText}
-        theme={theme}
-      />
+      <>
+        <MarkdownEditor
+          ref={editorRef}
+          value={content}
+          onChange={(val) => {
+            setContent(val);
+            setIsDirty(true);
+          }}
+          onSelectionChange={setSelectedText}
+          theme={theme}
+        />
+        <ChatInput
+          disabled={appMode !== "preview"}
+          onSubmit={(userMessage) => {
+            handlePaletteExecute({
+              command: "chat",
+              context: selectedText || content,
+              params: { userMessage },
+            });
+          }}
+        />
+      </>
     );
   }
 
@@ -203,15 +180,6 @@ export default function App() {
 
   return (
     <>
-      {/* US-009: Command Palette overlay */}
-      <CommandPalette
-        isOpen={isPaletteOpen}
-        onClose={() => setIsPaletteOpen(false)}
-        onExecute={handlePaletteExecute}
-        selectedText={selectedText}
-        content={content}
-      />
-
       <AppLayout
         currentFile={selectedFile}
         headerActions={headerActions}
