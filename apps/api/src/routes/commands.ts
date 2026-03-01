@@ -18,7 +18,7 @@ const commandTargetSchema = z.object({
 })
 
 const commandPayloadSchema = z.object({
-  command: z.enum(['summarize', 'rewrite', 'create-prd']),
+  command: z.enum(['summarize', 'rewrite', 'create-prd', 'chat']),
   target: commandTargetSchema,
   params: z.record(z.unknown()).optional(),
   provider: z.string().optional(),

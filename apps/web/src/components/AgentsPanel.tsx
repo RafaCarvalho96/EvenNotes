@@ -185,6 +185,7 @@ export function AgentsPanel({
               command={pendingRun.command}
               context={pendingRun.context}
               target={{ type: "file", path: selectedFile }}
+              params={pendingRun.params as Record<string, unknown> | undefined}
               onResult={onRunResult}
               onError={onRunError}
               onClose={onResultClose}

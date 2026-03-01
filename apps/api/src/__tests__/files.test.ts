@@ -329,4 +329,26 @@ describe('Files & Runs API Routes', () => {
       await app.close()
     })
   })
+
+  describe('POST /api/commands/run', () => {
+    it('returns 202 with runId for command chat', async () => {
+      const app = buildApp()
+      await app.ready()
+
+      writeFileSync(join(tmpDir, 'chat-target.md'), '# Chat Target\n\nSome content to chat about.')
+
+      const res = await supertest(app.server)
+        .post('/api/commands/run')
+        .send({
+          command: 'chat',
+          target: { type: 'file', path: 'chat-target.md' },
+          params: { userMessage: 'summarize this' },
+        })
+
+      expect(res.status).toBe(202)
+      expect(res.body.runId).toBeTruthy()
+
+      await app.close()
+    })
+  })
 })

@@ -1,4 +1,15 @@
+# Dependencies
 node_modules
+
+# Build outputs
+dist/
+build/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Turborepo cache
+.turbo/
 
 # Local environment files – never commit these (use .env.example as the template)
 .env
@@ -6,3 +17,18 @@ node_modules
 .env.docker
 .env.*
 !.env.example
+
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

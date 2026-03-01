@@ -1,7 +1,7 @@
 // ─── PipelineInput ────────────────────────────────────────────────────────────
 
 export type PipelineInput = {
-  command: 'summarize' | 'rewrite' | 'create-prd'
+  command: 'summarize' | 'rewrite' | 'create-prd' | 'chat'
   content: string
   params?: Record<string, unknown>
   provider?: string

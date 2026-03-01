@@ -1,12 +1,12 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { SummarizePipeline, RewritePipeline, CreatePrdPipeline } from '@evennotes/ai-pipelines'
+import { SummarizePipeline, RewritePipeline, CreatePrdPipeline, ChatPipeline } from '@evennotes/ai-pipelines'
 import type { PipelineRunner } from '@evennotes/ai-pipelines'
 import { runsStore } from '../store/runs.js'
 import { emitRunEvent } from '../store/runEvents.js'
 
 interface CommandPayload {
-  command: 'summarize' | 'rewrite' | 'create-prd'
+  command: 'summarize' | 'rewrite' | 'create-prd' | 'chat'
   target: { type: string; path: string }
   params?: Record<string, unknown>
   provider?: string
@@ -16,6 +16,7 @@ const pipelineMap: Record<string, () => PipelineRunner> = {
   summarize: () => new SummarizePipeline(),
   rewrite: () => new RewritePipeline(),
   'create-prd': () => new CreatePrdPipeline(),
+  'chat': () => new ChatPipeline(),
 }
 
 export async function executeCommand(

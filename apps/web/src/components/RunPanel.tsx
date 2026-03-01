@@ -15,6 +15,8 @@ export interface RunPanelProps {
   context: string;
   /** Target file for the run. */
   target: RunTarget;
+  /** Optional extra params forwarded to the API (e.g. userMessage for chat). */
+  params?: Record<string, unknown>;
   /** Called with the final accumulated output when run succeeds. */
   onResult?: (result: string) => void;
   /** Called when the run ends with an error (including cancel). */
@@ -23,8 +25,8 @@ export interface RunPanelProps {
   onClose?: () => void;
 }
 
-export function RunPanel({ command, context, target, onResult, onError, onClose }: RunPanelProps) {
-  const { status, output, errorMessage, cancel } = useCommandRun(command, target, context, onResult);
+export function RunPanel({ command, context, target, params, onResult, onError, onClose }: RunPanelProps) {
+  const { status, output, errorMessage, cancel } = useCommandRun(command, target, context, onResult, params);
 
   useEffect(() => {
     if (status === "error") {

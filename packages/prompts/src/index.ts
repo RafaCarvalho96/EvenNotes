@@ -40,6 +40,8 @@ export const CREATE_PRD_PROMPT: PromptTemplate = {
   placeholders: ['{context}'],
 }
 
+export { CHAT_EDIT_PROMPT } from './chat.js'
+
 // ─── buildPrompt ──────────────────────────────────────────────────────────────
 
 export function buildPrompt(
