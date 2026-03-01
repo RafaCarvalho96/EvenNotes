@@ -6,20 +6,6 @@
  *   PIPELINE_MAX_RETRIES  – max retry attempts on transient errors (default: 2)
  */
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-
-export function getPipelineTimeout(): number {
-  const raw = process.env['PIPELINE_TIMEOUT_MS']
-  const val = raw ? parseInt(raw, 10) : 30_000
-  return Number.isFinite(val) && val > 0 ? val : 30_000
-}
-
-export function getMaxRetries(): number {
-  const raw = process.env['PIPELINE_MAX_RETRIES']
-  const val = raw ? parseInt(raw, 10) : 2
-  return Number.isFinite(val) && val >= 0 ? val : 2
-}
-
 // ─── Timeout ──────────────────────────────────────────────────────────────────
 
 /**

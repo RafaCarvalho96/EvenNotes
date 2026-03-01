@@ -30,9 +30,10 @@ body {
   --color-accent: #2563eb;
   --color-muted: #6b7280;
   --header-height: 44px;
-  --sidebar-width: 20%;
-  --editor-width: 40%;
-  --preview-width: 40%;
+  --sidebar-width: 18%;
+  --editor-width: 36%;
+  --preview-small-width: 240px;
+  --agents-width: 320px;
 }
 
 [data-theme="dark"] {

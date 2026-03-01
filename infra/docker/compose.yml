@@ -21,7 +21,7 @@ services:
     env_file:
       - path: ../../.env.local
         required: false
-      - path: ../../.env.example
+      - path: ../../.env.development
         required: false
     environment:
       NODE_ENV: development
@@ -73,12 +73,15 @@ services:
     env_file:
       - path: ../../.env.local
         required: false
-      - path: ../../.env.example
+      - path: ../../.env.development
         required: false
     environment:
       NODE_ENV: development
+      VITE_API_URL: http://api:3001
     volumes:
       - ../../:/app
+      - /app/node_modules
+      - /app/apps/web/node_modules
     depends_on:
       api:
         condition: service_healthy

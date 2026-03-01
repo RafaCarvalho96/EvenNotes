@@ -6,7 +6,8 @@
       "Bash(node:*)",
       "Bash(curl:*)",
       "Bash(grep:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(docker compose:*)"
     ]
   }
 }

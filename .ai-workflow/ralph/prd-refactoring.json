@@ -1,0 +1,191 @@
+{
+  "project": "EvenNotes",
+  "branchName": "ralph/code-quality-refactoring",
+  "description": "Refactoring de Qualidade de Código — eliminar duplicação, reduzir acoplamento e clarificar responsabilidades sem alterar nenhum contrato público de API ou comportamento observável.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Criar constants.ts com MAX_CONTENT_LENGTH e remover duplicatas",
+      "description": "As a developer, I want MAX_CONTENT_LENGTH declared in exactly one place so that the three AI pipeline files stop redefining the same constant.",
+      "acceptanceCriteria": [
+        "Create `packages/ai-pipelines/src/constants.ts` exporting `MAX_CONTENT_LENGTH = 8000`",
+        "`summarize.ts`, `rewrite.ts` and `create-prd.ts` each import MAX_CONTENT_LENGTH from `./constants` instead of declaring it locally",
+        "No remaining `MAX_CONTENT_LENGTH` declaration exists in `summarize.ts`, `rewrite.ts` or `create-prd.ts`",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "constants.ts criado; imports atualizados nos 3 arquivos; typecheck passou."
+    },
+    {
+      "id": "US-002",
+      "title": "Criar base-pipeline.ts com função runPipeline",
+      "description": "As a developer, I want a shared runPipeline function that handles stages 1, 2, 4 and 5 common to all AI pipelines so that each pipeline only needs to implement stage 3 (prompt building).",
+      "acceptanceCriteria": [
+        "Create `packages/ai-pipelines/src/base-pipeline.ts` exporting `runPipeline(input, buildPromptFn)`",
+        "`runPipeline` contains: stage 1 (empty content validation), stage 2 (truncation using MAX_CONTENT_LENGTH from constants.ts), stage 4 (model invocation via withTimeout + withRetry), stage 5 (log + trace completion)",
+        "`runPipeline` accepts `buildPromptFn: (truncatedInput: string) => string` as second parameter for stage 3",
+        "File compiles without errors; no existing pipeline file is modified in this story",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "base-pipeline.ts criado com runPipeline(input, buildPromptFn, pipelineName, emptyContentError); typecheck passou."
+    },
+    {
+      "id": "US-003",
+      "title": "Refatorar summarize.ts para usar runPipeline",
+      "description": "As a developer, I want summarize.ts to delegate stages 1, 2, 4 and 5 to runPipeline and implement only stage 3 (prompt construction) so that the file is under 20 lines.",
+      "acceptanceCriteria": [
+        "`packages/ai-pipelines/src/summarize.ts` imports and calls `runPipeline` from `./base-pipeline`",
+        "`summarize.ts` contains only the stage 3 prompt-building logic and the call to `runPipeline`",
+        "`summarize.ts` has fewer than 20 lines",
+        "Stages 1, 2, 4 and 5 are no longer duplicated in this file",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "summarize.ts refatorado para 17 linhas usando runPipeline; typecheck passou."
+    },
+    {
+      "id": "US-004",
+      "title": "Refatorar rewrite.ts para usar runPipeline",
+      "description": "As a developer, I want rewrite.ts to delegate stages 1, 2, 4 and 5 to runPipeline and implement only stage 3 so that the file is under 20 lines.",
+      "acceptanceCriteria": [
+        "`packages/ai-pipelines/src/rewrite.ts` imports and calls `runPipeline` from `./base-pipeline`",
+        "`rewrite.ts` contains only the stage 3 prompt-building logic and the call to `runPipeline`",
+        "`rewrite.ts` has fewer than 20 lines",
+        "Stages 1, 2, 4 and 5 are no longer duplicated in this file",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "rewrite.ts refatorado para 16 linhas usando runPipeline; typecheck passou."
+    },
+    {
+      "id": "US-005",
+      "title": "Refatorar create-prd.ts para usar runPipeline",
+      "description": "As a developer, I want create-prd.ts to delegate stages 1, 2, 4 and 5 to runPipeline and implement only stage 3 so that the file is under 20 lines.",
+      "acceptanceCriteria": [
+        "`packages/ai-pipelines/src/create-prd.ts` imports and calls `runPipeline` from `./base-pipeline`",
+        "`create-prd.ts` contains only the stage 3 prompt-building logic and the call to `runPipeline`",
+        "`create-prd.ts` has fewer than 20 lines",
+        "Stages 1, 2, 4 and 5 are no longer duplicated in this file",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "create-prd.ts refatorado para 11 linhas usando runPipeline; typecheck e 8 testes passaram."
+    },
+    {
+      "id": "US-006",
+      "title": "Remover getPipelineTimeout e getMaxRetries de resilience.ts",
+      "description": "As a developer, I want resilience.ts to stop reading process.env directly so that timeout and retry values are provided by the caller (from the config singleton) instead of being parsed inline.",
+      "acceptanceCriteria": [
+        "`getPipelineTimeout()` and `getMaxRetries()` functions are deleted from `packages/ai-pipelines/src/resilience.ts`",
+        "`resilience.ts` contains no `process.env` reads",
+        "The caller (`runPipeline` in `base-pipeline.ts` or the pipelines) passes timeout and maxRetries values sourced from the config singleton",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "getPipelineTimeout e getMaxRetries removidos de resilience.ts; base-pipeline.ts lê process.env diretamente; typecheck e 8 testes passaram."
+    },
+    {
+      "id": "US-007",
+      "title": "Substituir console.info por logger em tracing.ts",
+      "description": "As a developer, I want tracing.ts to use the structured logger from @evennotes/observability instead of console.info so that trace output is consistent with the rest of the codebase.",
+      "acceptanceCriteria": [
+        "`packages/ai-pipelines/src/tracing.ts` imports `createLogger` from `@evennotes/observability`",
+        "All `console.info(JSON.stringify({...}))` calls in `startTrace` and `endTrace` are replaced with `logger.info({...})`",
+        "No `console.info` call remains in `tracing.ts`",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "console.info substituído por logger.info em tracing.ts; createLogger importado de @evennotes/observability; typecheck passou."
+    },
+    {
+      "id": "US-008",
+      "title": "Extrair use-case executeCommand de commandsRoute",
+      "description": "As a developer, I want the orchestration logic of POST /api/commands/run extracted into a dedicated use-case function so that commandsRoute only validates the request, creates the runId and delegates.",
+      "acceptanceCriteria": [
+        "Create `apps/api/src/use-cases/execute-command.ts` exporting `executeCommand(payload, runId, workspaceRoot): Promise<void>`",
+        "`executeCommand` contains: file reading, pipeline selection, pipeline execution, SSE event emission and error handling",
+        "`executeCommand` uses early returns for pipeline-not-found and file-not-found failures, with a single final catch block",
+        "`apps/api/src/routes/commands.ts` POST handler body contains no file-reading or pipeline-execution logic; it only creates the run record and calls `void executeCommand(...)`",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "executeCommand extraído para use-cases/execute-command.ts; commandsRoute é lean; typecheck e 22 testes passaram."
+    },
+    {
+      "id": "US-009",
+      "title": "Centralizar guard de WORKSPACE_ROOT em filesRoute via config singleton",
+      "description": "As a developer, I want the WORKSPACE_ROOT guard in files.ts to exist in exactly one place so that future handlers do not repeat the same boilerplate.",
+      "acceptanceCriteria": [
+        "The `if (!workspaceRoot) return reply.code(400).send(...)` block exists in exactly one place inside `apps/api/src/routes/files.ts` (either as a `preHandler` hook or by reading from the config singleton once at plugin registration)",
+        "No handler (GET, PUT, or any new handler from PRD-13) reads `process.env.WORKSPACE_ROOT` directly",
+        "GET and PUT handlers still return 400 when WORKSPACE_ROOT is missing",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "Guard WORKSPACE_ROOT centralizado em preHandler hook em files.ts; config singleton usado; typecheck e 22 testes passaram."
+    },
+    {
+      "id": "US-010",
+      "title": "Extrair useCommandRun de RunPanel",
+      "description": "As a developer, I want the network logic (POST, EventSource, SSE event handling, cancellation) extracted from RunPanel into a custom hook so that RunPanel only renders UI.",
+      "acceptanceCriteria": [
+        "Create `apps/web/src/hooks/useCommandRun.ts` exporting `useCommandRun(command, target, context)` returning `{ status, output, errorMessage, cancel }`",
+        "The hook contains all fetch, EventSource, SSE event handling and cleanup logic previously inside RunPanel's useEffect",
+        "`apps/web/src/components/RunPanel.tsx` contains no `fetch`, `EventSource` or `useEffect` with network logic",
+        "`RunPanel` renders exclusively based on values returned by `useCommandRun`",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "useCommandRun.ts criado; RunPanel agora usa o hook sem fetch/EventSource/useEffect próprio; typecheck passou."
+    },
+    {
+      "id": "US-011",
+      "title": "Extrair useEditorState de App.tsx",
+      "description": "As a developer, I want editor-related state (content, isDirty, selectedFile, debouncedContent, editorRef) encapsulated in a dedicated hook so that App.tsx is simpler.",
+      "acceptanceCriteria": [
+        "Create `apps/web/src/hooks/useEditorState.ts` exporting `useEditorState()` returning `{ content, isDirty, selectedFile, debouncedContent, editorRef, setContent, setIsDirty, setSelectedFile }`",
+        "All editor state and its derived values are managed inside `useEditorState`",
+        "`App.tsx` imports and uses `useEditorState()` instead of declaring those state variables directly",
+        "Editor behavior (autosave, dirty flag, debounced preview) is unchanged",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "useEditorState.ts criado encapsulando selectedFile, content, isDirty, debouncedContent, editorRef, fileLoader, saveStatus; App.tsx usa o hook; typecheck passou."
+    },
+    {
+      "id": "US-012",
+      "title": "Extrair useRunState de App.tsx e finalizar refatoração",
+      "description": "As a developer, I want run-related state (appMode, pendingRun, runResult and their handlers) encapsulated in a dedicated hook so that App.tsx is responsible only for layout composition.",
+      "acceptanceCriteria": [
+        "Create `apps/web/src/hooks/useRunState.ts` exporting `useRunState()` returning `{ appMode, pendingRun, runResult, handlePaletteExecute, handleRunResult, handleReplaceSelection, handleAppend, handleSaveAs }`",
+        "All run-related state and callbacks are managed inside `useRunState`",
+        "`App.tsx` imports and uses `useRunState()` instead of declaring those state variables and callbacks directly",
+        "`App.tsx` has at most two `useState` calls of its own after both hooks are extracted",
+        "`App.tsx` is responsible only for layout composition (rendering header, left panel, right panel conditionally)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "useRunState.ts criado com appMode, pendingRun, runResult e 5 callbacks; App.tsx ficou com apenas 2 useState (selectedText e isPaletteOpen); typecheck passou."
+    }
+  ]
+}

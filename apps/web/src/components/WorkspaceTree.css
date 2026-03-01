@@ -52,3 +52,241 @@
   color: var(--color-muted);
   margin: 0;
 }
+
+.workspace-tree__wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.workspace-tree__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px 6px 12px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.workspace-tree__header-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+  user-select: none;
+}
+
+.workspace-tree__btn-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.workspace-tree__btn-add:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.workspace-tree__btn-add:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.workspace-tree__create-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.workspace-tree__create-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  font-size: 13px;
+  border: 1px solid var(--color-accent, #6366f1);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  outline: none;
+}
+
+.workspace-tree__create-input:focus {
+  border-color: var(--color-accent, #6366f1);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent, #6366f1) 25%, transparent);
+}
+
+.workspace-tree__create-input:disabled {
+  opacity: 0.6;
+}
+
+.workspace-tree__create-error {
+  font-size: 11px;
+  color: var(--color-error, #e53e3e);
+  padding: 0 2px;
+}
+
+/* ── Rename inline ───────────────────────────────────────────────────────── */
+
+.workspace-tree__btn-rename {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.workspace-tree__item:hover .workspace-tree__btn-rename {
+  display: flex;
+}
+
+.workspace-tree__btn-rename:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.workspace-tree__item--renaming {
+  cursor: default;
+}
+
+.workspace-tree__rename-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.workspace-tree__rename-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 2px 6px;
+  font-size: 13px;
+  border: 1px solid var(--color-accent, #6366f1);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  outline: none;
+}
+
+.workspace-tree__rename-input:focus {
+  border-color: var(--color-accent, #6366f1);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent, #6366f1) 25%, transparent);
+}
+
+.workspace-tree__rename-input:disabled {
+  opacity: 0.6;
+}
+
+.workspace-tree__rename-error {
+  font-size: 11px;
+  color: var(--color-error, #e53e3e);
+  padding: 0 2px;
+}
+
+/* ── Delete inline ───────────────────────────────────────────────────────── */
+
+.workspace-tree__btn-delete {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.workspace-tree__item:hover .workspace-tree__btn-delete {
+  display: flex;
+}
+
+.workspace-tree__btn-delete:hover {
+  background: color-mix(in srgb, var(--color-error, #e53e3e) 15%, transparent);
+  color: var(--color-error, #e53e3e);
+}
+
+.workspace-tree__item--confirming-delete {
+  cursor: default;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.workspace-tree__confirm-delete {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.workspace-tree__confirm-delete-text {
+  font-size: 12px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.workspace-tree__btn-cancel,
+.workspace-tree__btn-confirm {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 3px;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
+}
+
+.workspace-tree__btn-cancel {
+  background: var(--color-surface);
+  color: var(--color-muted);
+}
+
+.workspace-tree__btn-cancel:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.workspace-tree__btn-confirm {
+  background: color-mix(in srgb, var(--color-error, #e53e3e) 12%, transparent);
+  color: var(--color-error, #e53e3e);
+  border-color: color-mix(in srgb, var(--color-error, #e53e3e) 40%, transparent);
+}
+
+.workspace-tree__btn-confirm:hover {
+  background: color-mix(in srgb, var(--color-error, #e53e3e) 22%, transparent);
+}

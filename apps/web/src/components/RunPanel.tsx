@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect } from "react";
+import { useCommandRun } from "../hooks/useCommandRun";
+import type { RunStatus } from "../hooks/useCommandRun";
 import "./RunPanel.css";
-
-export type RunStatus = "idle" | "running" | "success" | "error";
 
 interface RunTarget {
   type: "file";
@@ -17,131 +17,21 @@ export interface RunPanelProps {
   target: RunTarget;
   /** Called with the final accumulated output when run succeeds. */
   onResult?: (result: string) => void;
+  /** Called when the run ends with an error (including cancel). */
+  onError?: (msg: string) => void;
   /** Called when user closes the panel. */
   onClose?: () => void;
 }
 
-export function RunPanel({
-  command,
-  context,
-  target,
-  onResult,
-  onClose,
-}: RunPanelProps) {
-  const [status, setStatus] = useState<RunStatus>("idle");
-  const [output, setOutput] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const outputRef = useRef(output);
-  outputRef.current = output;
+export function RunPanel({ command, context, target, onResult, onError, onClose }: RunPanelProps) {
+  const { status, output, errorMessage, cancel } = useCommandRun(command, target, context, onResult);
 
-  const esRef = useRef<EventSource | null>(null);
-
-  // Start the run as soon as the component mounts
   useEffect(() => {
-    let cancelled = false;
-
-    async function startRun() {
-      setStatus("running");
-      setOutput("");
-      setErrorMessage("");
-
-      try {
-        const res = await fetch("/api/commands/run", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            command,
-            target,
-            params: { context },
-          }),
-        });
-
-        if (!res.ok) {
-          throw new Error(`POST /api/commands/run returned ${res.status}`);
-        }
-
-        const data = (await res.json()) as { runId?: string; id?: string };
-        const runId = data.runId ?? data.id;
-        if (!runId) throw new Error("No runId in response");
-        if (cancelled) return;
-
-        const es = new EventSource(`/api/runs/${runId}/events`);
-        esRef.current = es;
-
-        es.addEventListener("run.token_stream", (e: MessageEvent) => {
-          if (cancelled) return;
-          try {
-            const payload = JSON.parse(e.data) as { token?: string };
-            if (payload.token) {
-              setOutput((prev) => prev + payload.token);
-            }
-          } catch {
-            setOutput((prev) => prev + e.data);
-          }
-        });
-
-        es.addEventListener("run.completed", (e: MessageEvent) => {
-          es.close();
-          if (cancelled) return;
-          let finalOutput = outputRef.current;
-          try {
-            const payload = JSON.parse(e.data) as { output?: string; result?: string };
-            if (payload.output || payload.result) {
-              finalOutput = (payload.output ?? payload.result) as string;
-              setOutput(finalOutput);
-            }
-          } catch {
-            // keep accumulated tokens
-          }
-          setStatus("success");
-          onResult?.(finalOutput);
-        });
-
-        es.addEventListener("run.failed", (e: MessageEvent) => {
-          es.close();
-          if (cancelled) return;
-          let msg = "Run failed";
-          try {
-            const payload = JSON.parse(e.data) as { error?: string; message?: string };
-            msg = payload.error ?? payload.message ?? msg;
-          } catch {
-            // ignore parse error
-          }
-          setErrorMessage(msg);
-          setStatus("error");
-        });
-
-        es.onerror = () => {
-          if (cancelled) return;
-          if (status !== "success" && status !== "error") {
-            es.close();
-            setErrorMessage("Connection to event stream lost");
-            setStatus("error");
-          }
-        };
-      } catch (err) {
-        if (!cancelled) {
-          setErrorMessage(err instanceof Error ? err.message : String(err));
-          setStatus("error");
-        }
-      }
+    if (status === "error") {
+      onError?.(errorMessage || "Run failed");
     }
-
-    void startRun();
-
-    return () => {
-      cancelled = true;
-      esRef.current?.close();
-      esRef.current = null;
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleCancel = () => {
-    esRef.current?.close();
-    esRef.current = null;
-    setStatus("error");
-    setErrorMessage("Cancelled by user");
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   return (
     <div className="run-panel">
@@ -149,7 +39,7 @@ export function RunPanel({
         <ExecutionStatus status={status} command={command} />
         <div className="run-panel__header-actions">
           {status === "running" && (
-            <button className="run-btn run-btn--cancel" onClick={handleCancel}>
+            <button className="run-btn run-btn--cancel" onClick={cancel}>
               Cancel
             </button>
           )}

@@ -1,14 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 type WorkspaceTreeState =
   | { status: "loading" }
   | { status: "success"; files: string[] }
   | { status: "error"; message: string };
 
-export function useWorkspaceTree(): WorkspaceTreeState {
+export function useWorkspaceTree() {
   const [state, setState] = useState<WorkspaceTreeState>({ status: "loading" });
 
-  useEffect(() => {
+  const fetchTree = useCallback(() => {
+    let cancelled = false;
+    setState({ status: "loading" });
     fetch("/api/workspace/tree")
       .then(async (res) => {
         if (!res.ok) {
@@ -17,12 +19,28 @@ export function useWorkspaceTree(): WorkspaceTreeState {
         }
         return res.json() as Promise<string[]>;
       })
-      .then((files) => setState({ status: "success", files }))
+      .then((files) => {
+        if (!cancelled) setState({ status: "success", files });
+      })
       .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : "Erro desconhecido";
-        setState({ status: "error", message });
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : "Erro desconhecido";
+          setState({ status: "error", message });
+        }
       });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  return state;
+  useEffect(() => {
+    const cancel = fetchTree();
+    return cancel;
+  }, [fetchTree]);
+
+  const refetch = useCallback(() => {
+    fetchTree();
+  }, [fetchTree]);
+
+  return { ...state, refetch };
 }

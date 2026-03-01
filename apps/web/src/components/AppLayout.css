@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-width: 1280px;
+  min-width: 1100px;
   overflow: hidden;
 }
 
@@ -98,13 +98,15 @@
   color: var(--color-muted);
 }
 
-/* Preview */
+/* Preview — always-visible small column */
 .app-preview {
-  flex: 1;
+  flex: 0 0 var(--preview-small-width);
+  min-width: 180px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   background: var(--color-bg);
+  border-right: 1px solid var(--color-border);
 }
 
 .app-preview__header {
@@ -119,6 +121,34 @@
 }
 
 .app-preview__content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Agents — always-visible panel to the right of the preview */
+.app-agents {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+
+.app-agents__header {
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  background: var(--color-surface);
+}
+
+.app-agents__content {
   flex: 1;
   overflow: hidden;
   display: flex;

@@ -37,7 +37,7 @@ export const runsRoute: FastifyPluginAsync = async (fastify) => {
     const channel = `run:${id}`
 
     const sendEvent = (event: RunEvent) => {
-      raw.write(`data: ${JSON.stringify(event)}\n\n`)
+      raw.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`)
 
       // Server closes the stream after terminal events.
       if (event.type === 'run.completed' || event.type === 'run.failed') {

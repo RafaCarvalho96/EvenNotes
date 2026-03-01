@@ -9,6 +9,9 @@
  * normally with zero side-effects and no startup errors.
  */
 
+import { createLogger } from '@evennotes/observability'
+const logger = createLogger('tracing')
+
 export interface TraceContext {
   runName: string
   projectName: string
@@ -42,15 +45,7 @@ export function startTrace(pipelineName: string, runId: string): TraceContext | 
 
   // In a real integration you would call the LangSmith SDK here to open a run.
   // This stub records intent without introducing an SDK dependency.
-  console.info(
-    JSON.stringify({
-      level: 'info',
-      msg: 'trace:start',
-      runName: ctx.runName,
-      project: ctx.projectName,
-      tags: ctx.tags,
-    }),
-  )
+  logger.info('trace:start', { runName: ctx.runName, project: ctx.projectName, tags: ctx.tags })
 
   return ctx
 }
@@ -63,15 +58,11 @@ export function endTrace(ctx: TraceContext | null, output?: string, error?: stri
 
   const durationMs = Date.now() - ctx.startedAt
 
-  console.info(
-    JSON.stringify({
-      level: 'info',
-      msg: error ? 'trace:failed' : 'trace:completed',
-      runName: ctx.runName,
-      project: ctx.projectName,
-      durationMs,
-      ...(error ? { error } : {}),
-      hasOutput: !!output,
-    }),
-  )
+  logger.info(error ? 'trace:failed' : 'trace:completed', {
+    runName: ctx.runName,
+    project: ctx.projectName,
+    durationMs,
+    ...(error ? { error } : {}),
+    hasOutput: !!output,
+  })
 }

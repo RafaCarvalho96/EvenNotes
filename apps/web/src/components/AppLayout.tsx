@@ -5,6 +5,8 @@ interface AppLayoutProps {
   sidebar?: React.ReactNode;
   editor?: React.ReactNode;
   preview?: React.ReactNode;
+  /** Always-visible agents panel rendered to the right of the small preview. */
+  agents?: React.ReactNode;
   headerActions?: React.ReactNode;
 }
 
@@ -13,6 +15,7 @@ export function AppLayout({
   sidebar,
   editor,
   preview,
+  agents,
   headerActions,
 }: AppLayoutProps) {
   return (
@@ -52,6 +55,17 @@ export function AppLayout({
           <div className="app-preview__content">
             {preview ?? (
               <span>Preview aparecerá aqui</span>
+            )}
+          </div>
+        </section>
+
+        <section className="app-agents">
+          <div className="app-agents__header">Agentes</div>
+          <div className="app-agents__content">
+            {agents ?? (
+              <span style={{ padding: "16px", display: "block", color: "var(--color-muted)", fontSize: 13 }}>
+                Abra um arquivo para usar os agentes.
+              </span>
             )}
           </div>
         </section>

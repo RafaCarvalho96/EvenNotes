@@ -1,33 +1,33 @@
-import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import "./index.css";
 import { AppLayout } from "./components/AppLayout";
 import { WorkspaceTree } from "./components/WorkspaceTree";
-import { MarkdownEditor, type MarkdownEditorHandle } from "./components/MarkdownEditor";
+import { MarkdownEditor } from "./components/MarkdownEditor";
 import { MarkdownPreview } from "./components/MarkdownPreview";
-import { CommandPalette, type CommandPalettePayload } from "./components/CommandPalette";
-import { RunPanel } from "./components/RunPanel";
-import { DiffOrResultPanel } from "./components/DiffOrResultPanel";
-import { useDebounce } from "./hooks/useDebounce";
-import { useFileLoader } from "./hooks/useFileLoader";
-import { useSaveFile } from "./hooks/useSaveFile";
+import { CommandPalette } from "./components/CommandPalette";
+import { AgentsPanel } from "./components/AgentsPanel";
+import { useEditorState } from "./hooks/useEditorState";
 import { useTheme } from "./hooks/useTheme";
 import { useWorkspaceTree } from "./hooks/useWorkspaceTree";
-
-// ── App-mode: what is showing in the right (preview) panel ──────────────────
-type AppMode = "preview" | "running" | "result";
+import { useRunState } from "./hooks/useRunState";
 
 export default function App() {
-  // ── File & content state ─────────────────────────────────────────────────
-  const [selectedFile, setSelectedFile] = useState<string | undefined>();
-  const [content, setContent] = useState("");
+  // ── Editor state (file, content, dirty flag, debounce, ref, autosave) ────
+  const {
+    selectedFile,
+    setSelectedFile,
+    content,
+    setContent,
+    isDirty,
+    setIsDirty,
+    debouncedContent,
+    editorRef,
+    fileLoader,
+    saveStatus,
+  } = useEditorState();
+
+  // ── Selection state (stays in App.tsx) ───────────────────────────────────
   const [selectedText, setSelectedText] = useState("");
-  const [isDirty, setIsDirty] = useState(false);
-
-  const debouncedContent = useDebounce(content, 300);
-  const fileLoader = useFileLoader(selectedFile);
-
-  // ── US-008: Autosave ──────────────────────────────────────────────────────
-  const saveStatus = useSaveFile(selectedFile, content, isDirty);
 
   // ── US-012: Theme ─────────────────────────────────────────────────────────
   const [theme, toggleTheme] = useTheme();
@@ -38,69 +38,32 @@ export default function App() {
   // ── US-009: Command Palette ───────────────────────────────────────────────
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
 
-  // ── US-010: Run Panel ─────────────────────────────────────────────────────
-  const [appMode, setAppMode] = useState<AppMode>("preview");
-  const [pendingRun, setPendingRun] = useState<CommandPalettePayload | null>(null);
+  // ── US-012: Run state (appMode, pendingRun, runResult, callbacks) ─────────
+  const {
+    appMode,
+    setAppMode,
+    pendingRun,
+    runResult,
+    runHistory,
+    handlePaletteExecute,
+    handleRunResult,
+    handleRunError,
+    handleReplaceSelection,
+    handleAppend,
+    handleSaveAs,
+  } = useRunState(editorRef, setContent, setIsDirty);
 
-  // ── US-011: Diff/Result Panel ─────────────────────────────────────────────
-  const [runResult, setRunResult] = useState("");
-
-  // ── MarkdownEditor imperative ref (for replaceSelection) ─────────────────
-  const editorRef = useRef<MarkdownEditorHandle>(null);
-
-  // ── Sync loaded file content into editor ─────────────────────────────────
-  useEffect(() => {
-    if (fileLoader.status === "success") {
-      setContent(fileLoader.content);
-      setIsDirty(false);
-    }
-  }, [fileLoader]);
-
-  // ── Ctrl+K → open command palette ────────────────────────────────────────
+  // ── Ctrl+K → open command palette (only when a file is open) ──────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
-        setIsPaletteOpen((open) => !open);
+        if (selectedFile) setIsPaletteOpen((open) => !open);
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, []);
-
-  // ── Handle palette execute → start run ───────────────────────────────────
-  const handlePaletteExecute = useCallback((payload: CommandPalettePayload) => {
-    setPendingRun(payload);
-    setRunResult("");
-    setAppMode("running");
-  }, []);
-
-  // ── When run finishes ─────────────────────────────────────────────────────
-  const handleRunResult = useCallback((result: string) => {
-    setRunResult(result);
-    setAppMode("result");
-  }, []);
-
-  // ── DiffOrResultPanel actions ─────────────────────────────────────────────
-  const handleReplaceSelection = useCallback((text: string) => {
-    if (editorRef.current) {
-      editorRef.current.replaceSelection(text);
-      setIsDirty(true);
-    }
-  }, []);
-
-  const handleAppend = useCallback((text: string) => {
-    setContent((prev) => prev + "\n\n" + text);
-    setIsDirty(true);
-  }, []);
-
-  const handleSaveAs = useCallback(async (path: string, fileContent: string) => {
-    await fetch("/api/files/content", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path, content: fileContent }),
-    });
-  }, []);
+  }, [selectedFile]);
 
   // ── Save status label ─────────────────────────────────────────────────────
   const saveLabel: Record<typeof saveStatus, string> = {
@@ -134,18 +97,20 @@ export default function App() {
 
       {/* US-009: open palette button */}
       <button
-        onClick={() => setIsPaletteOpen(true)}
+        onClick={() => selectedFile && setIsPaletteOpen(true)}
+        disabled={!selectedFile}
         style={{
           fontSize: 12,
           padding: "4px 10px",
           borderRadius: 4,
           border: "1px solid var(--color-border)",
           background: "var(--color-surface)",
-          color: "var(--color-text)",
-          cursor: "pointer",
+          color: selectedFile ? "var(--color-text)" : "var(--color-muted)",
+          cursor: selectedFile ? "pointer" : "not-allowed",
           whiteSpace: "nowrap",
+          opacity: selectedFile ? 1 : 0.5,
         }}
-        title="Open command palette (Ctrl+K)"
+        title={selectedFile ? "Open command palette (Ctrl+K)" : "Open a file first to use AI commands"}
       >
         ⌘ AI Commands
       </button>
@@ -212,31 +177,29 @@ export default function App() {
     );
   }
 
-  // ── Right-panel slot (preview / run / result) ─────────────────────────────
-  let rightSlot: ReactNode;
-  if (appMode === "running" && pendingRun && selectedFile) {
-    rightSlot = (
-      <RunPanel
-        command={pendingRun.command}
-        context={pendingRun.context}
-        target={{ type: "file", path: selectedFile }}
-        onResult={handleRunResult}
-        onClose={() => setAppMode("preview")}
-      />
-    );
-  } else if (appMode === "result" && runResult) {
-    rightSlot = (
-      <DiffOrResultPanel
-        result={runResult}
-        onClose={() => setAppMode("preview")}
-        onReplaceSelection={handleReplaceSelection}
-        onAppend={handleAppend}
-        onSaveAs={handleSaveAs}
-      />
-    );
-  } else {
-    rightSlot = <MarkdownPreview content={debouncedContent} />;
-  }
+  // ── Preview slot ─ always shows markdown preview (small column) ─────────────────────
+  const previewSlot: ReactNode = <MarkdownPreview content={debouncedContent} />;
+
+  // ── Agents slot (always-on panel with state, result, history) ──────────────
+  const agentsSlot: ReactNode = (
+    <AgentsPanel
+      hasFile={!!selectedFile}
+      selectedText={selectedText}
+      content={content}
+      onRun={handlePaletteExecute}
+      appMode={appMode}
+      pendingRun={pendingRun}
+      selectedFile={selectedFile}
+      runResult={runResult}
+      runHistory={runHistory}
+      onRunResult={handleRunResult}
+      onRunError={handleRunError}
+      onResultClose={() => setAppMode("preview")}
+      onReplaceSelection={handleReplaceSelection}
+      onAppend={handleAppend}
+      onSaveAs={handleSaveAs}
+    />
+  );
 
   return (
     <>
@@ -269,11 +232,59 @@ export default function App() {
                 setAppMode("preview");
               }}
               selectedFile={selectedFile}
+              onCreateFile={async (filePath) => {
+                const res = await fetch("/api/files", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ path: filePath }),
+                });
+                if (res.ok) {
+                  workspaceTree.refetch();
+                  setSelectedFile(filePath);
+                  setAppMode("preview");
+                  return null;
+                }
+                const body = await res.json().catch(() => ({})) as { error?: string };
+                return body.error ?? `Erro ${res.status}`;
+              }}
+              onRenameFile={async (from, to) => {
+                const res = await fetch("/api/files/rename", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ from, to }),
+                });
+                if (res.ok) {
+                  workspaceTree.refetch();
+                  if (selectedFile === from) {
+                    setSelectedFile(to);
+                  }
+                  return null;
+                }
+                const body = await res.json().catch(() => ({})) as { error?: string };
+                return body.error ?? `Erro ${res.status}`;
+              }}
+              onDeleteFile={async (filePath) => {
+                const res = await fetch(`/api/files?path=${encodeURIComponent(filePath)}`, {
+                  method: "DELETE",
+                });
+                if (res.ok) {
+                  workspaceTree.refetch();
+                  if (selectedFile === filePath) {
+                    setSelectedFile(undefined);
+                    setContent("");
+                    setIsDirty(false);
+                  }
+                  return null;
+                }
+                const body = await res.json().catch(() => ({})) as { error?: string };
+                return body.error ?? `Erro ${res.status}`;
+              }}
             />
           )
         }
         editor={editorSlot}
-        preview={rightSlot}
+        preview={previewSlot}
+        agents={agentsSlot}
       />
     </>
   );
