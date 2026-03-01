@@ -57,6 +57,9 @@ export function useFileLoader(selectedPath: string | undefined): FileLoaderState
           };
           throw new Error(body.error ?? `HTTP ${res.status}`);
         }
+        if (!res.headers.get("content-type")?.includes("application/json")) {
+          throw new Error("Resposta inesperada do servidor (não-JSON)");
+        }
         return res.json() as Promise<{ path: string; content: string }>;
       })
       .then((data) => {
@@ -69,7 +72,11 @@ export function useFileLoader(selectedPath: string | undefined): FileLoaderState
       .catch((err: unknown) => {
         if (err instanceof Error && err.name === "AbortError") return;
         const message =
-          err instanceof Error ? err.message : "Erro desconhecido";
+          err instanceof TypeError || err instanceof SyntaxError
+            ? "Não foi possível carregar o arquivo. Verifique se a API está em execução."
+            : err instanceof Error
+              ? err.message
+              : "Erro desconhecido";
         setState({ status: "error", message, loadedPath: selectedPath });
       });
 

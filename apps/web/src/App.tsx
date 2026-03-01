@@ -11,14 +11,7 @@ import { useDebounce } from "./hooks/useDebounce";
 import { useFileLoader } from "./hooks/useFileLoader";
 import { useSaveFile } from "./hooks/useSaveFile";
 import { useTheme } from "./hooks/useTheme";
-
-const DEMO_FILES = [
-  "notes/readme.md",
-  "notes/getting-started.md",
-  "docs/architecture.md",
-  "docs/api-reference.md",
-  "journal/2024-01-15.md",
-];
+import { useWorkspaceTree } from "./hooks/useWorkspaceTree";
 
 // ── App-mode: what is showing in the right (preview) panel ──────────────────
 type AppMode = "preview" | "running" | "result";
@@ -38,6 +31,9 @@ export default function App() {
 
   // ── US-012: Theme ─────────────────────────────────────────────────────────
   const [theme, toggleTheme] = useTheme();
+
+  // ── Workspace file list ───────────────────────────────────────────────────
+  const workspaceTree = useWorkspaceTree();
 
   // ── US-009: Command Palette ───────────────────────────────────────────────
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -257,14 +253,24 @@ export default function App() {
         currentFile={selectedFile}
         headerActions={headerActions}
         sidebar={
-          <WorkspaceTree
-            files={DEMO_FILES}
-            onSelect={(path) => {
-              setSelectedFile(path);
-              setAppMode("preview");
-            }}
-            selectedFile={selectedFile}
-          />
+          workspaceTree.status === "loading" ? (
+            <p style={{ padding: "12px 16px", color: "var(--color-muted)", fontSize: 13 }}>
+              Carregando arquivos…
+            </p>
+          ) : workspaceTree.status === "error" ? (
+            <p style={{ padding: "12px 16px", color: "var(--color-error, #e53e3e)", fontSize: 13 }}>
+              ⚠ {workspaceTree.message}
+            </p>
+          ) : (
+            <WorkspaceTree
+              files={workspaceTree.files}
+              onSelect={(path) => {
+                setSelectedFile(path);
+                setAppMode("preview");
+              }}
+              selectedFile={selectedFile}
+            />
+          )
         }
         editor={editorSlot}
         preview={rightSlot}

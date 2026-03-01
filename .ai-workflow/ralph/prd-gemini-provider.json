@@ -1,0 +1,130 @@
+{
+  "project": "EvenNotes",
+  "branchName": "ralph/gemini-provider",
+  "description": "Adicionar suporte ao provider Google Gemini em packages/ai-core usando LangChain (@langchain/google-genai) e, na mesma oportunidade, migrar OpenAILlmProvider para @langchain/openai — mantendo ILlmProvider como contrato interno e zero mudanças nas pipelines, API ou CLI.",
+  "context": {
+    "dependsOn": "ralph/ai-pipeline-cli",
+    "summary": "A branch anterior entregou: ILlmProvider, LlmOptions, MockLlmProvider, OpenAILlmProvider (raw openai SDK v4), providerRegistry e getProvider() em packages/ai-core; SummarizePipeline, RewritePipeline e CreatePrdPipeline em packages/ai-pipelines consumindo ILlmProvider; integração SSE na API; CLI completo. O projeto já usa o ecossistema LangChain para tracing (LangSmith via LANGCHAIN_TRACING_V2 / LANGSMITH_API_KEY), tornando natural adotar @langchain/openai e @langchain/google-genai como adapters dos providers.",
+    "interfaceToPreserve": "ILlmProvider: { generate(prompt: string, options?: LlmOptions): AsyncIterable<string> } — nenhuma pipeline ou rota deve ser alterada",
+    "langchainStreamingPattern": "BaseChatModel.stream(messages) → AsyncIterable<AIMessageChunk> → chunk.content as string",
+    "existingRegistry": "providerRegistry: Record<string, () => ILlmProvider> — atualmente tem 'openai' e 'mock'"
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Instalar dependências LangChain em packages/ai-core",
+      "description": "Como desenvolvedor, preciso dos pacotes LangChain para OpenAI e Gemini instalados em packages/ai-core para poder refatorar e adicionar providers sem introduzir deps em outros packages.",
+      "acceptanceCriteria": [
+        "@langchain/core adicionado como dependência em packages/ai-core/package.json",
+        "@langchain/openai adicionado como dependência em packages/ai-core/package.json",
+        "@langchain/google-genai adicionado como dependência em packages/ai-core/package.json",
+        "Dependência raw 'openai' removida de packages/ai-core/package.json (passa a ser transitiva via @langchain/openai)",
+        "pnpm install executado na raiz sem erros de lock",
+        "Nenhuma outra dependência alterada"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "@langchain/core, @langchain/openai, @langchain/google-genai added; raw openai removed from packages/ai-core/package.json; pnpm install ran successfully."
+    },
+    {
+      "id": "US-002",
+      "title": "Refatorar OpenAILlmProvider para usar @langchain/openai",
+      "description": "Como desenvolvedor, quero que OpenAILlmProvider use ChatOpenAI do LangChain em vez do SDK raw para que ambos os providers (OpenAI e Gemini) sigam o mesmo padrão de streaming.",
+      "acceptanceCriteria": [
+        "OpenAILlmProvider em packages/ai-core/src/index.ts importa ChatOpenAI de '@langchain/openai'",
+        "Construtor instancia ChatOpenAI passando { openAIApiKey: OPENAI_API_KEY, model, maxTokens, temperature }",
+        "Se OPENAI_API_KEY não estiver definida, lança Error: 'OPENAI_API_KEY environment variable is not set.'",
+        "método generate() chama chatModel.stream([new HumanMessage(prompt)]) e itera os AIMessageChunk",
+        "Cada chunk.content é convertido para string e yieldado; chunks com content vazio são ignorados",
+        "Model padrão mantido: 'gpt-4o-mini' (sobreposto por options.model)",
+        "Assinatura pública de ILlmProvider preservada — nenhuma pipeline alterada",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "OpenAILlmProvider now uses ChatOpenAI from @langchain/openai; generate() calls model.stream([new HumanMessage(prompt)]); typecheck passes."
+    },
+    {
+      "id": "US-003",
+      "title": "Implementar GeminiLlmProvider via @langchain/google-genai",
+      "description": "Como usuário, quero executar pipelines com o modelo Gemini do Google configurando LLM_PROVIDER=gemini, com streaming idêntico ao do provider OpenAI.",
+      "acceptanceCriteria": [
+        "Classe GeminiLlmProvider exportada de packages/ai-core/src/index.ts implementando ILlmProvider",
+        "Construtor lê GOOGLE_API_KEY do environment; lança Error: 'GOOGLE_API_KEY environment variable is not set.'",
+        "Instancia ChatGoogleGenerativeAI de '@langchain/google-genai' com { apiKey: GOOGLE_API_KEY, model, maxOutputTokens, temperature }",
+        "Model padrão: 'gemini-2.0-flash' (sobreposto por options.model se fornecido)",
+        "options.maxTokens mapeado para maxOutputTokens na instância ChatGoogleGenerativeAI",
+        "options.temperature mapeado para temperature",
+        "método generate() chama chatModel.stream([new HumanMessage(prompt)]) e itera os AIMessageChunk",
+        "Cada chunk.content convertido para string e yieldado; conteúdo vazio ignorado silenciosamente",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "GeminiLlmProvider implemented with ChatGoogleGenerativeAI; uses gemini-2.0-flash as default model; maps maxTokens to maxOutputTokens; typecheck passes."
+    },
+    {
+      "id": "US-004",
+      "title": "Registrar 'gemini' na providerRegistry e atualizar getProvider",
+      "description": "Como desenvolvedor, preciso que o provider Gemini esteja disponível na registry para que toda a stack (API + CLI) passe a suportá-lo apenas com LLM_PROVIDER=gemini.",
+      "acceptanceCriteria": [
+        "providerRegistry em packages/ai-core/src/index.ts inclui: 'gemini': () => new GeminiLlmProvider()",
+        "getProvider('gemini') retorna instância de GeminiLlmProvider (quando GOOGLE_API_KEY está definida)",
+        "getProvider() sem argumento lê LLM_PROVIDER env — valor 'gemini' retorna GeminiLlmProvider",
+        "getProvider() com provider desconhecido lança erro listando os três: 'Available providers: openai, gemini, mock'",
+        ".env.example atualizado: comentário 'Possible values: mock | openai | gemini' na variável LLM_PROVIDER",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "providerRegistry now includes 'gemini'; getProvider error lists 'openai, gemini, mock'; API config LLM_PROVIDER enum updated to include 'gemini'; both typechecks pass."
+    },
+    {
+      "id": "US-005",
+      "title": "Testes unitários para GeminiLlmProvider e OpenAILlmProvider (LangChain)",
+      "description": "Como desenvolvedor, preciso de testes que validem streaming e erros de configuração dos dois providers refatorados, mockando LangChain em vez dos SDKs raw.",
+      "acceptanceCriteria": [
+        "Arquivo packages/ai-core/src/gemini-provider.test.ts criado",
+        "Teste: sem GOOGLE_API_KEY, construtor de GeminiLlmProvider lança Error contendo 'GOOGLE_API_KEY'",
+        "Teste: com GOOGLE_API_KEY, generate() com ChatGoogleGenerativeAI mockado via vi.mock('@langchain/google-genai') itera stream e yielda tokens não-vazios",
+        "Arquivo packages/ai-core/src/mock-provider.test.ts existente mantido sem alterações",
+        "openai-provider.test.ts (existente ou novo): valida que OpenAILlmProvider usa ChatOpenAI (mock vi.mock('@langchain/openai')) e yielda tokens",
+        "pnpm --filter @evennotes/ai-core test passa sem erros",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "gemini-provider.test.ts and openai-provider.test.ts created; all 6 tests pass (2 per provider + 2 for mock); vi.mock hoisting applies correctly."
+    },
+    {
+      "id": "US-006",
+      "title": "Expor Gemini em GET /api/config/providers e atualizar config schema",
+      "description": "Como usuário do CLI e da UI, quero ver o provider Gemini listado em /api/config/providers com seu status de disponibilidade.",
+      "acceptanceCriteria": [
+        "Array PROVIDERS em apps/api/src/routes/config.ts inclui: { id: 'gemini', name: 'Google Gemini', envVar: 'GOOGLE_API_KEY' }",
+        "GET /api/config/providers retorna Gemini com available: true quando GOOGLE_API_KEY está definida",
+        "GET /api/config/providers retorna Gemini com available: false quando GOOGLE_API_KEY não está definida",
+        "Schema Zod em apps/api/src/config.ts inclui GOOGLE_API_KEY: z.string().optional()",
+        "Nenhuma alteração nas entradas de 'openai' e 'mock'",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "PROVIDERS array in routes/config.ts now includes Google Gemini with GOOGLE_API_KEY env check; GOOGLE_API_KEY added as optional to env schema; API typecheck passes."
+    },
+    {
+      "id": "US-007",
+      "title": "Documentar GOOGLE_API_KEY no .env.example",
+      "description": "Como desenvolvedor que clona o repositório, preciso ver GOOGLE_API_KEY no .env.example com comentário explicativo.",
+      "acceptanceCriteria": [
+        ".env.example contém a entrada GOOGLE_API_KEY= após a entrada OPENAI_API_KEY=",
+        "Comentário acima da linha: # Google Gemini API key — https://aistudio.google.com/app/apikey",
+        "Variável LLM_PROVIDER tem seu comentário atualizado para: # Possible values: mock | openai | gemini",
+        "Nenhuma outra entrada existente alterada"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "GOOGLE_API_KEY= added after OPENAI_API_KEY= with correct comment; LLM_PROVIDER comment updated to 'Possible values: mock | openai | gemini'; no other entries changed."
+    }
+  ]
+}

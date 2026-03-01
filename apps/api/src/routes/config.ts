@@ -4,6 +4,7 @@ import type { FastifyPluginAsync } from 'fastify'
 
 const PROVIDERS = [
   { id: 'openai', name: 'OpenAI', envVar: 'OPENAI_API_KEY' },
+  { id: 'gemini', name: 'Google Gemini', envVar: 'GOOGLE_API_KEY' },
   { id: 'mock', name: 'Mock (Testing)', envVar: null as string | null },
 ]
 

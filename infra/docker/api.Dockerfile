@@ -21,9 +21,13 @@ COPY apps/api/package.json ./apps/api/package.json
 COPY apps/cli/package.json ./apps/cli/package.json
 COPY packages/ai-core/package.json ./packages/ai-core/package.json
 COPY packages/ai-pipelines/package.json ./packages/ai-pipelines/package.json
-COPY packages/config/package.json ./packages/config/package.json
 COPY packages/contracts/package.json ./packages/contracts/package.json
+COPY packages/markdown-core/package.json ./packages/markdown-core/package.json
+COPY packages/observability/package.json ./packages/observability/package.json
 COPY packages/prompts/package.json ./packages/prompts/package.json
+COPY packages/test-utils/package.json ./packages/test-utils/package.json
+COPY packages/ui/package.json ./packages/ui/package.json
+COPY packages/workspace-core/package.json ./packages/workspace-core/package.json
 
 # Install all dependencies with a BuildKit cache mount for the pnpm store
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
@@ -43,10 +47,10 @@ COPY . .
 
 EXPOSE 3001
 
-HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
-    CMD wget -qO- http://localhost:3001/health || exit 1
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=30s \
+    CMD wget -qO- http://127.0.0.1:3001/health || exit 1
 
-CMD ["pnpm", "--filter", "@evennotes/api", "exec", "tsx", "watch", "src/index.ts"]
+CMD ["pnpm", "--filter", "@evennotes/api", "run", "dev"]
 
 # ─────────────────────────────────────────────────────────────
 # Stage: prod

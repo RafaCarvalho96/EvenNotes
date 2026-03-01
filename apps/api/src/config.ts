@@ -20,8 +20,11 @@ const envSchema = z.object({
   // OpenAI (optional — pipeline will throw at runtime when actually needed)
   OPENAI_API_KEY: z.string().optional(),
 
+  // Google Gemini (optional — pipeline will throw at runtime when actually needed)
+  GOOGLE_API_KEY: z.string().optional(),
+
   // LLM provider
-  LLM_PROVIDER: z.enum(['mock', 'openai']).default('mock'),
+  LLM_PROVIDER: z.enum(['mock', 'openai', 'gemini']).default('mock'),
 
   // Pipeline resilience
   PIPELINE_TIMEOUT_MS: z

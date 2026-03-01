@@ -1,0 +1,49 @@
+{
+  "project": "EvenNotes",
+  "branchName": "ralph/fix-docker-tsx-module-not-found",
+  "description": "Fix: Docker API container crash-loop caused by bind mount overwriting container node_modules (tsx MODULE_NOT_FOUND)",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add anonymous volumes to protect node_modules in compose.yml",
+      "description": "As a developer, I need the Docker API container to preserve the node_modules installed during image build so that the bind mount of the host workspace does not overwrite them with Windows-incompatible binaries.",
+      "acceptanceCriteria": [
+        "In infra/docker/compose.yml, under the api service volumes, add anonymous volume entry '/app/node_modules' after the bind mount",
+        "Add anonymous volume entry '/app/apps/api/node_modules' after '/app/node_modules'",
+        "No other service or setting in compose.yml is changed",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Anonymous volumes added to compose.yml api service: /app/node_modules and /app/apps/api/node_modules"
+    },
+    {
+      "id": "US-002",
+      "title": "Replace pnpm exec with pnpm run dev in api.Dockerfile",
+      "description": "As a developer, I need the API Dockerfile CMD to use 'pnpm run dev' instead of 'pnpm exec tsx watch src/index.ts' so that binary resolution is delegated to pnpm and works correctly inside the Linux container.",
+      "acceptanceCriteria": [
+        "In infra/docker/api.Dockerfile, the CMD in the dev stage is changed from [\"pnpm\", \"--filter\", \"@evennotes/api\", \"exec\", \"tsx\", \"watch\", \"src/index.ts\"] to [\"pnpm\", \"--filter\", \"@evennotes/api\", \"run\", \"dev\"]",
+        "No other stage or instruction in api.Dockerfile is changed",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "CMD changed from pnpm exec tsx watch src/index.ts to pnpm run dev in api.Dockerfile dev stage"
+    },
+    {
+      "id": "US-003",
+      "title": "Verify Docker API container starts healthy",
+      "description": "As a developer, I want to confirm that 'pnpm docker:up' no longer produces a crash-loop on api-1 and that the healthcheck passes after applying the two infrastructure fixes.",
+      "acceptanceCriteria": [
+        "Running 'docker compose -f infra/docker/compose.yml down -v' followed by 'pnpm docker:up' completes without MODULE_NOT_FOUND errors in api-1 logs",
+        "docker inspect docker-api-1 --format='{{.State.Health.Status}}' returns 'healthy'",
+        "GET http://localhost:3001/health returns a 200 response",
+        "web-1 container starts successfully after api-1 becomes healthy",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "FIXED — Three root causes resolved: (1) Added anonymous volumes for all packages/*/node_modules and apps/cli/node_modules in compose.yml so pnpm workspace symlinks are preserved after bind mount. (2) Changed healthcheck URL from 'localhost' to '127.0.0.1' in compose.yml and api.Dockerfile dev stage — Alpine /etc/hosts maps localhost to ::1 (IPv6) first but Node binds IPv4 only. (3) Added start_period: 30s and retries: 5 to healthcheck to tolerate tsx watch warm-up restart window. All acceptance criteria pass: no MODULE_NOT_FOUND errors, docker inspect returns 'healthy', GET /health returns 200, web-1 starts after api-1 becomes healthy, typecheck passes."
+    }
+  ]
+}

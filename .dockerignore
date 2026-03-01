@@ -1,0 +1,27 @@
+# Dependencies – pnpm workspace symlinks cause "unknown file mode" errors in Docker
+**/node_modules
+
+# Version control
+.git
+
+# Build artifacts
+**/dist
+**/build
+
+# Environment secrets (never leak into Docker context)
+.env
+.env.local
+.env.docker
+# NOTE: .env.example is intentionally NOT excluded — it is safe to copy as docs
+
+# Logs
+*.log
+
+# macOS metadata
+.DS_Store
+
+# Test coverage
+**/coverage
+
+# Turbo cache
+**/.turbo

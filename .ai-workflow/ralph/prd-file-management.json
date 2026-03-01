@@ -1,0 +1,160 @@
+{
+  "project": "EvenNotes",
+  "branchName": "ralph/file-management",
+  "description": "Gerenciamento de Arquivos - criar, renomear e excluir arquivos .md inteiramente pela UI",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Adicionar endpoint POST /api/files",
+      "description": "Como desenvolvedor, preciso de um endpoint para criar novos arquivos .md no workspace via API.",
+      "acceptanceCriteria": [
+        "POST /api/files aceita body { path: string, content?: string }",
+        "Cria o arquivo usando writeFile com flag 'wx' (falha se já existir)",
+        "Cria diretórios intermediários com mkdir recursive quando necessário",
+        "Usa resolveWorkspacePath — retorna 403 em path traversal",
+        "Retorna 409 se o arquivo já existir",
+        "Retorna 201 com { path, createdAt } em sucesso",
+        "Retorna 400 se path estiver vazio ou sem extensão .md",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Adicionar endpoint PATCH /api/files/rename",
+      "description": "Como desenvolvedor, preciso de um endpoint para renomear arquivos .md dentro do workspace.",
+      "acceptanceCriteria": [
+        "PATCH /api/files/rename aceita body { from: string, to: string }",
+        "Usa fs.rename para mover o arquivo no filesystem",
+        "Valida ambos os paths com resolveWorkspacePath — retorna 403 em traversal",
+        "Retorna 404 se o arquivo de origem não existir",
+        "Retorna 409 se o destino já existir",
+        "Retorna 200 com { from, to, renamedAt } em sucesso",
+        "Retorna 400 se from ou to estiverem vazios",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Adicionar endpoint DELETE /api/files",
+      "description": "Como desenvolvedor, preciso de um endpoint para excluir arquivos .md do workspace.",
+      "acceptanceCriteria": [
+        "DELETE /api/files aceita query param path=<string>",
+        "Usa fs.unlink para remover o arquivo",
+        "Valida o path com resolveWorkspacePath — retorna 403 em traversal",
+        "Retorna 404 se o arquivo não existir",
+        "Retorna 200 com { path, deletedAt } em sucesso",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Escrever testes para os endpoints de gerenciamento de arquivos",
+      "description": "Como desenvolvedor, preciso de testes cobrindo os três novos endpoints para garantir comportamento correto e regressão.",
+      "acceptanceCriteria": [
+        "POST /api/files: cobre 201 (criação ok), 400 (path inválido), 403 (traversal), 409 (já existe)",
+        "PATCH /api/files/rename: cobre 200 (ok), 400 (payload inválido), 403 (traversal), 404 (origem não existe), 409 (destino já existe)",
+        "DELETE /api/files: cobre 200 (ok), 403 (traversal), 404 (não existe)",
+        "Arquivo de testes em apps/api/src/__tests__/files.test.ts",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Expor função refetch no hook useWorkspaceTree",
+      "description": "Como desenvolvedor, preciso que useWorkspaceTree exponha refetch() para forçar recarregamento da árvore após operações de arquivo.",
+      "acceptanceCriteria": [
+        "Hook retorna { tree, loading, error, refetch }",
+        "refetch() dispara nova chamada GET /api/workspace/tree e atualiza tree com o resultado",
+        "Chamadas em voo anteriores são descartadas corretamente (sem race condition)",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Adicionar botão de novo arquivo (+) no header da sidebar",
+      "description": "Como usuário, quero criar um novo arquivo .md clicando no botão + na sidebar e digitando o nome/path.",
+      "acceptanceCriteria": [
+        "Botão + aparece no header do WorkspaceTree",
+        "Clicar exibe input inline (ou modal) para digitar o path (ex: notas/reuniao.md)",
+        "Enter envia POST /api/files com o path digitado",
+        "Escape cancela sem enviar requisição",
+        "Frontend valida que o path termina com .md antes de enviar",
+        "Após sucesso, chama refetch() e seleciona o novo arquivo no editor",
+        "Mensagem de erro visível se a API retornar 409 ou 403",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Adicionar ação de renomear inline por item na sidebar",
+      "description": "Como usuário, quero renomear um arquivo .md diretamente na sidebar com edição inline do nome.",
+      "acceptanceCriteria": [
+        "Cada item da sidebar expõe botão de edição (lápis) ou suporta duplo-clique no nome",
+        "Ativar rename substitui o texto do nome por um input preenchido com o nome atual",
+        "Enter confirma e envia PATCH /api/files/rename com { from, to }",
+        "Escape cancela sem enviar requisição",
+        "Frontend valida que o novo nome termina com .md e é diferente do atual",
+        "Após sucesso, chama refetch() para atualizar a árvore",
+        "Mensagem de erro visível se API retornar 404 ou 409",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Adicionar ação de excluir com confirmação por item na sidebar",
+      "description": "Como usuário, quero excluir um arquivo .md com confirmação explícita para evitar exclusão acidental.",
+      "acceptanceCriteria": [
+        "Cada item da sidebar tem ícone de lixeira",
+        "Clicar na lixeira exibe diálogo de confirmação: 'Excluir <nome>?' com botões Cancelar / Confirmar",
+        "Cancelar ou Escape fecha o diálogo sem enviar requisição",
+        "Confirmar envia DELETE /api/files?path=<path>",
+        "Após sucesso, chama refetch() para atualizar a árvore",
+        "Mensagem de erro visível se API retornar 404",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Atualizar App.tsx para tratar arquivo aberto excluído ou renomeado",
+      "description": "Como usuário, quero que o editor reaja corretamente quando o arquivo aberto no momento for excluído ou renomeado pela sidebar.",
+      "acceptanceCriteria": [
+        "Se selectedFile for excluído, selectedFile volta a null e o editor limpa seu conteúdo",
+        "Se selectedFile for renomeado, selectedFile é atualizado para o novo path sem perder o conteúdo exibido",
+        "O editor não exibe conteúdo de arquivo inexistente após exclusão",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

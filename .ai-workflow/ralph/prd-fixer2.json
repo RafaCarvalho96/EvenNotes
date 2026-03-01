@@ -1,0 +1,39 @@
+{
+  "project": "EvenNotes",
+  "branchName": "ralph/fix-editor-json-parse-html-response",
+  "description": "Fix: Editor displays JSON parse error when loading file because Vite dev server returns HTML instead of proxying /api/* requests to the Fastify API",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add Vite proxy for /api in vite.config.ts",
+      "description": "As a developer, I need the Vite dev server to proxy all /api/* requests to http://localhost:3001 so that fetch calls from the web app reach the Fastify API instead of receiving the SPA fallback HTML.",
+      "acceptanceCriteria": [
+        "In apps/web/vite.config.ts, add server.proxy with '/api' targeting 'http://localhost:3001' and changeOrigin: true",
+        "The existing server.port: 5173 setting is preserved",
+        "No other settings in vite.config.ts are changed",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Added server.proxy '/api' -> http://localhost:3001 with changeOrigin:true. Typecheck passes."
+    },
+    {
+      "id": "US-002",
+      "title": "Guard content-type and normalize errors in useFileLoader",
+      "description": "As a user, I want the editor to show a friendly, actionable error message when the API is unavailable or returns an unexpected response, instead of a raw SyntaxError leaking from the JS engine.",
+      "acceptanceCriteria": [
+        "In apps/web/src/hooks/useFileLoader.ts, after confirming res.ok === true, check that res.headers.get('content-type') includes 'application/json'",
+        "If content-type does not include 'application/json' and res.ok === true, throw new Error('Resposta inesperada do servidor (não-JSON)')",
+        "In the catch block, map TypeError and SyntaxError to the message 'Não foi possível carregar o arquivo. Verifique se a API está em execução.'",
+        "Non-TypeError/SyntaxError errors that are instanceof Error continue using err.message; fallback is 'Erro desconhecido'",
+        "AbortError handling is preserved — early return without setting error state",
+        "Errors from res.ok === false (HTTP error responses) continue using body.error or 'HTTP <status>' as message",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Added content-type guard (throws non-JSON error when res.ok but not application/json). Catch block now maps TypeError/SyntaxError to friendly PT-BR message; AbortError preserved; typecheck passes."
+    }
+  ]
+}

@@ -18,9 +18,13 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/package.json
 COPY packages/ai-core/package.json ./packages/ai-core/package.json
 COPY packages/ai-pipelines/package.json ./packages/ai-pipelines/package.json
-COPY packages/config/package.json ./packages/config/package.json
 COPY packages/contracts/package.json ./packages/contracts/package.json
+COPY packages/markdown-core/package.json ./packages/markdown-core/package.json
+COPY packages/observability/package.json ./packages/observability/package.json
 COPY packages/prompts/package.json ./packages/prompts/package.json
+COPY packages/test-utils/package.json ./packages/test-utils/package.json
+COPY packages/ui/package.json ./packages/ui/package.json
+COPY packages/workspace-core/package.json ./packages/workspace-core/package.json
 
 # Install all dependencies with a BuildKit cache mount for the pnpm store
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \

@@ -1,4 +1,6 @@
-import OpenAI from 'openai'
+import { ChatOpenAI } from '@langchain/openai'
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
+import { HumanMessage } from '@langchain/core/messages'
 
 // ─── LlmOptions ───────────────────────────────────────────────────────────────
 
@@ -31,32 +33,62 @@ export class MockLlmProvider implements ILlmProvider {
 // ─── OpenAILlmProvider ────────────────────────────────────────────────────────
 
 export class OpenAILlmProvider implements ILlmProvider {
-  private client: OpenAI
+  private apiKey: string
 
   constructor() {
     const apiKey = process.env['OPENAI_API_KEY']
     if (!apiKey) {
-      throw new Error(
-        'OPENAI_API_KEY environment variable is not set. ' +
-          'Please set it before using the OpenAI provider.',
-      )
+      throw new Error('OPENAI_API_KEY environment variable is not set.')
     }
-    this.client = new OpenAI({ apiKey })
+    this.apiKey = apiKey
   }
 
   async *generate(prompt: string, options?: LlmOptions): AsyncIterable<string> {
-    const stream = await this.client.chat.completions.create({
+    const model = new ChatOpenAI({
+      openAIApiKey: this.apiKey,
       model: options?.model ?? 'gpt-4o-mini',
-      max_tokens: options?.maxTokens,
+      maxTokens: options?.maxTokens,
       temperature: options?.temperature,
-      stream: true,
-      messages: [{ role: 'user', content: prompt }],
     })
 
+    const stream = await model.stream([new HumanMessage(prompt)])
+
     for await (const chunk of stream) {
-      const delta = chunk.choices[0]?.delta?.content
-      if (delta) {
-        yield delta
+      const content = typeof chunk.content === 'string' ? chunk.content : ''
+      if (content) {
+        yield content
+      }
+    }
+  }
+}
+
+// ─── GeminiLlmProvider ───────────────────────────────────────────────────────
+
+export class GeminiLlmProvider implements ILlmProvider {
+  private apiKey: string
+
+  constructor() {
+    const apiKey = process.env['GOOGLE_API_KEY']
+    if (!apiKey) {
+      throw new Error('GOOGLE_API_KEY environment variable is not set.')
+    }
+    this.apiKey = apiKey
+  }
+
+  async *generate(prompt: string, options?: LlmOptions): AsyncIterable<string> {
+    const model = new ChatGoogleGenerativeAI({
+      apiKey: this.apiKey,
+      model: options?.model ?? 'gemini-2.0-flash',
+      maxOutputTokens: options?.maxTokens,
+      temperature: options?.temperature,
+    })
+
+    const stream = await model.stream([new HumanMessage(prompt)])
+
+    for await (const chunk of stream) {
+      const content = typeof chunk.content === 'string' ? chunk.content : ''
+      if (content) {
+        yield content
       }
     }
   }
@@ -66,6 +98,7 @@ export class OpenAILlmProvider implements ILlmProvider {
 
 export const providerRegistry: Record<string, () => ILlmProvider> = {
   openai: () => new OpenAILlmProvider(),
+  gemini: () => new GeminiLlmProvider(),
   mock: () => new MockLlmProvider(),
 }
 
