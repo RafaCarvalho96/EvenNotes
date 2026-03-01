@@ -1,0 +1,110 @@
+{
+  "project": "EvenNotes",
+  "branchName": "ralph/ai-chat-edit",
+  "description": "Substituir o CommandPalette de comandos fixos por uma entrada de chat em linguagem natural — o usuário descreve a edição desejada e a ChatPipeline interpreta a instrução e retorna o conteúdo editado.",
+  "context": {
+    "dependsOn": "ralph/code-quality-refactoring",
+    "summary": "A stack atual possui: CommandPalette (Ctrl+K) com 3 comandos fixos (summarize, rewrite, create-prd); pipelines em packages/ai-pipelines consumindo ILlmProvider via runPipeline em base-pipeline.ts; API com POST /api/commands/run → SSE /api/runs/:id/events; DiffOrResultPanel para aceitar/rejeitar resultado. O padrão runPipeline(input, buildPromptFn, name, emptyError) é o único ponto de extensão necessário para adicionar ChatPipeline.",
+    "pipelinePattern": "Implementar PipelineRunner com run(input): AsyncIterable<PipelineEvent>; delegar stages 1-2-4-5 ao runPipeline() de base-pipeline.ts; implementar apenas stage 3 (buildPromptFn).",
+    "contractsPattern": "CommandPayload.command é union literal em packages/contracts/src/index.ts — adicionar 'chat'. API valida com Zod em apps/api/src/routes/commands.ts. pipelineMap em apps/api/src/use-cases/execute-command.ts mapeia command → PipelineRunner factory.",
+    "uiStatePattern": "App.tsx usa appMode ('preview' | 'running' | 'result'). handlePaletteExecute({ command, context }) em useRunState define pendingRun e muda appMode para 'running'. RunPanel recebe pendingRun e passa command + target + params para useCommandRun, que faz POST /api/commands/run."
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Adicionar CHAT_EDIT_PROMPT em packages/prompts",
+      "description": "Como desenvolvedor, preciso de um prompt template para a ChatPipeline que instrua o LLM a aplicar a instrução do usuário e retornar apenas o markdown editado, sem comentários.",
+      "acceptanceCriteria": [
+        "Criar `packages/prompts/src/chat.ts` exportando `CHAT_EDIT_PROMPT: PromptTemplate` com `id: 'chat-edit'` e `version: '1.0'`",
+        "Campo `system` instrui o LLM a atuar como editor de markdown: aplicar a instrução do usuário e retornar SOMENTE o conteúdo markdown completo editado, sem explicações ou comentários",
+        "Campo `user` contém o template: `'Document:\\n{content}\\n\\nInstruction: {userMessage}'`",
+        "Campo `placeholders` contém `['content', 'userMessage']`",
+        "`CHAT_EDIT_PROMPT` é re-exportado de `packages/prompts/src/index.ts`",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Criar ChatPipeline em packages/ai-pipelines",
+      "description": "Como desenvolvedor, preciso de uma pipeline que receba o conteúdo do arquivo e a instrução do usuário (params.userMessage) e retorne o conteúdo editado via streaming.",
+      "acceptanceCriteria": [
+        "Criar `packages/ai-pipelines/src/chat.ts` exportando `ChatPipeline implements PipelineRunner`",
+        "`ChatPipeline.run(input)` lê `input.params?.userMessage as string`; se ausente ou vazio, faz yield de `{ type: 'failed', error: 'No instruction provided.' }` e encerra",
+        "Chama `runPipeline(input, buildPromptFn, 'ChatPipeline', 'Content is empty. Please open a file before chatting.')` onde `buildPromptFn` monta o prompt com `buildPrompt(CHAT_EDIT_PROMPT, { content, userMessage })`",
+        "`ChatPipeline` é re-exportado de `packages/ai-pipelines/src/index.ts`",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Adicionar 'chat' ao contrato CommandPayload e à validação Zod da API",
+      "description": "Como desenvolvedor, preciso que o tipo CommandPayload e o schema Zod da rota aceitem o comando 'chat' para que o backend possa recebê-lo sem rejeitar com 400.",
+      "acceptanceCriteria": [
+        "Union `command` em `packages/contracts/src/index.ts` inclui `'chat'`",
+        "Schema Zod em `apps/api/src/routes/commands.ts` inclui `z.literal('chat')` na union do campo `command`",
+        "Comandos existentes (`summarize`, `rewrite`, `create-prd`) permanecem inalterados",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Registrar ChatPipeline no pipelineMap da API",
+      "description": "Como desenvolvedor, preciso que POST /api/commands/run com command='chat' execute a ChatPipeline em vez de retornar 'Pipeline not found'.",
+      "acceptanceCriteria": [
+        "`apps/api/src/use-cases/execute-command.ts` importa `ChatPipeline` de `@evennotes/ai-pipelines`",
+        "`pipelineMap` contém a entrada `'chat': () => new ChatPipeline()`",
+        "POST `/api/commands/run` com `{ command: 'chat', target: { type: 'file', path: '<arquivo válido>' }, params: { userMessage: 'summarize this' } }` retorna HTTP 202",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Criar componente ChatInput",
+      "description": "Como usuário, preciso de uma caixa de texto persistente para digitar instruções de edição em linguagem natural, substituindo o atalho Ctrl+K do CommandPalette.",
+      "acceptanceCriteria": [
+        "Criar `apps/web/src/components/ChatInput.tsx` com props `onSubmit: (msg: string) => void` e `disabled?: boolean`",
+        "Renderiza um `<textarea>` com placeholder 'Descreva a edição que deseja fazer...'",
+        "Pressionar Enter (sem Shift) submete a mensagem; Shift+Enter insere nova linha",
+        "Botão de envio fica desabilitado quando o textarea está vazio ou quando `disabled` é `true`",
+        "Ao submeter: chama `onSubmit(userMessage.trim())` e limpa o textarea",
+        "Não submete se `userMessage.trim()` for string vazia",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Substituir CommandPalette por ChatInput em App.tsx",
+      "description": "Como usuário, quero que o ChatInput apareça abaixo do editor quando um arquivo está aberto, substituindo o CommandPalette modal para iniciar edições com AI.",
+      "acceptanceCriteria": [
+        "Importação de `CommandPalette` e sua chamada de renderização são removidas de `App.tsx`",
+        "Estado `isPaletteOpen` e o atalho Ctrl+K são removidos de `App.tsx`",
+        "`ChatInput` é renderizado em `App.tsx` quando `appMode === 'preview'` e `selectedFile !== null`",
+        "`ChatInput` recebe `disabled={appMode !== 'preview'}` para bloquear envio durante execução",
+        "Ao submeter, `App.tsx` chama `handlePaletteExecute` com `{ command: 'chat', context: selectedText || content }` e o `userMessage` é inserido em `params: { userMessage }` na montagem do payload em `useCommandRun`",
+        "A transição de estados funciona corretamente: `'preview'` → `'running'` → `'result'` após envio do chat",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

@@ -1,12 +1,12 @@
 ---
 name: PrdParser
-description: "Convert PRDs to prd.json format for the Ralph autonomous agent system. Use when you have an existing PRD and need to convert it to Ralph's JSON format. Triggers on: convert this prd, turn this into ralph format, create prd.json from this, ralph json."
+description: "Convert PRDs to prd-<feature>.json format for the Ralph autonomous agent system. Use when you have an existing PRD and need to convert it to Ralph's JSON format. Triggers on: convert this prd, turn this into ralph format, create prd-<feature>.json from this, ralph json."
 user-invocable: true
 ---
 
 # Ralph PRD Converter
 
-Converts existing PRDs to the prd.json format that Ralph uses for autonomous execution.
+Converts existing PRDs to the prd-<feature>.json format that Ralph uses for autonomous execution.
 
 ---
 
@@ -161,7 +161,7 @@ Add ability to mark tasks with different statuses.
 - Persist status in database
 ```
 
-**Output prd.json:**
+**Output prd-<feature>.json:**
 ```json
 {
   "project": "TaskApp",
@@ -232,24 +232,24 @@ Add ability to mark tasks with different statuses.
 
 ## Archiving Previous Runs
 
-**Before writing a new prd.json, check if there is an existing one from a different feature:**
+**Before writing a new prd-<feature>.json, check if there is an existing one from a different feature:**
 
-1. Read the current `prd.json` if it exists
+1. Read the current `prd-<feature>.json` if it exists
 2. Check if `branchName` differs from the new feature's branch name
 3. If different AND `progress.txt` has content beyond the header:
    - Create archive folder: `archive/YYYY-MM-DD-feature-name/`
-   - Copy current `prd.json` and `progress.txt` to archive
+   - Copy current `prd-<feature>.json` and `progress.txt` to archive
    - Reset `progress.txt` with fresh header
 
-**The ralph.sh script handles this automatically** when you run it, but if you are manually updating prd.json between runs, archive first.
+**The ralph.sh script handles this automatically** when you run it, but if you are manually updating prd-<feature>.json between runs, archive first.
 
 ---
 
 ## Checklist Before Saving
 
-Before writing prd.json, verify:
+Before writing prd-<feature>.json, verify:
 
-- [ ] **Previous run archived** (if prd.json exists with different branchName, archive it first)
+- [ ] **Previous run archived** (if prd-<feature>.json exists with different branchName, archive it first)
 - [ ] Each story is completable in one iteration (small enough)
 - [ ] Stories are ordered by dependency (schema to backend to UI)
 - [ ] Every story has "Typecheck passes" as criterion
